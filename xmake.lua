@@ -1,4 +1,5 @@
-add_requires("fmt", "boost", "nie-breakpad", "bzip2")
+add_requires("fmt", "boost", "nie-breakpad", "bzip2", "stack_alloc", "system_error2", "nontype_functional",
+  "concurrentqueue", "short_alloc", "skia-ref_ptr", "expected")
 package("stack_alloc")
 do
   set_license("MIT")
