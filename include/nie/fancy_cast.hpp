@@ -341,6 +341,18 @@ namespace nie {
     } else
       return {};
   }
+  template <typename D, typename S>
+  std::unique_ptr<D> fancy_cast(const std::unique_ptr<S>& s, nie::source_location location = nie::source_location::current()) {
+    if (s) {
+      D* p = fancy_cast<D>(s.get(), location);
+      if (p) {
+        s.release();
+        return {p};
+      } else
+        return {};
+    } else
+      return {};
+  }
   template <typename D> const D& fancy_cast(const is_fancy& s, nie::source_location location = nie::source_location::current()) {
     return fancy_cast<const D>(const_cast<is_fancy&>(s), location);
   }
