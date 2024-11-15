@@ -342,12 +342,12 @@ namespace nie {
       return {};
   }
   template <typename D, typename S>
-  std::unique_ptr<D> fancy_cast(std::unique_ptr<S>&& s, nie::source_location location = nie::source_location::current()) {
+  std::unique_ptr<D> fancy_cast(std::unique_ptr<S> s, nie::source_location location = nie::source_location::current()) {
     if (s) {
       D* p = fancy_cast<D>(s.get(), location);
       if (p) {
         s.release();
-        return {p};
+        return std::unique_ptr<D>{p};
       } else
         return {};
     } else
