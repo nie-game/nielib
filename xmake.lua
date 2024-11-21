@@ -44,6 +44,12 @@ do
   set_description("http://tl.tartanllama.xyz/")
 end
 package_end()
+package("rangesnext")
+do
+  set_license("BSL")
+  set_description("https://github.com/cor3ntin/rangesnext/blob/master/include/cor3ntin/rangesnext/enumerate.hpp")
+end
+package_end()
 package("nie-breakpad")
 do
   set_sourcedir(path.join(os.scriptdir(), "breakpad"))
