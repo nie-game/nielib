@@ -1,3 +1,4 @@
+set_config("vs", "2022")
 add_requires("fmt", "boost", "nie-breakpad", "bzip2")
 -- add_requires("stack_alloc", "system_error2", "nontype_functional", "concurrentqueue", "short_alloc", "skia-ref_ptr",
 --  "expected")
@@ -48,7 +49,7 @@ do
   set_sourcedir(path.join(os.scriptdir(), "breakpad"))
   add_includedirs("include/breakpad")
 
-  on_install("linux", function(package)
+  on_install(function(package)
     os.vrun("rm -rf \"%s\"/src/third_party/lss", package:sourcedir())
     os.vrun("git clone https://chromium.googlesource.com/linux-syscall-support/ \"%s\"/src/third_party/lss",
       package:sourcedir())
