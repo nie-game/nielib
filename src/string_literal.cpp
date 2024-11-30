@@ -7,6 +7,7 @@
 #include <nie/string_literal.hpp>
 #include <print>
 #include <shared_mutex>
+#include <forward_list>
 
 namespace nie {
   using namespace std::literals;
@@ -17,16 +18,6 @@ namespace nie {
 #endif
   } // namespace
 
-  struct cache_ptr_t {
-    std::shared_mutex cache_mutex;
-    std::unordered_map<std::string_view, string_data const*> cache_{{"", nullptr}};
-  }; // namespace
-
-  inline cache_ptr_t& cache_ptr() {
-    static cache_ptr_t x;
-    return x;
-  }
-
   struct dynamic_string_data : string_data {
     std::string t;
     dynamic_string_data(std::string t) : t(std::move(t)) {}
@@ -34,6 +25,17 @@ namespace nie {
       return t;
     }
   };
+
+  struct cache_ptr_t {
+    std::shared_mutex cache_mutex;
+    std::forward_list<dynamic_string_data> dyn_cache_;
+    std::unordered_map<std::string_view, string_data const*> cache_{{"", nullptr}};
+  }; // namespace
+
+  inline cache_ptr_t& cache_ptr() {
+    static cache_ptr_t x;
+    return x;
+  }
 
   string::string(std::string_view text) {
     {
@@ -48,7 +50,8 @@ namespace nie {
       data_ = cache_ptr().cache_.at(text);
       return;
     }
-    data_ = new dynamic_string_data(std::string(text));
+    cache_ptr().dyn_cache_.emplace_front(std::string(text));
+    data_ = &cache_ptr().dyn_cache_.front();
 #ifdef NIELIB_FULL
     // log.trace<"register">("Registering (D) {:#X} as {}", std::bit_cast<std::size_t>(data_), data_->text());
 #endif
