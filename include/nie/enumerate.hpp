@@ -6,7 +6,6 @@
 #include <version>
 
 #if !(__cpp_lib_ranges_enumerate > 202106)
-#error Enumerate missing
 namespace std::ranges {
   namespace r = std::ranges;
   namespace detail {

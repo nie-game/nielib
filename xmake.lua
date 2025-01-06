@@ -163,8 +163,9 @@ do
   add_packages("boost", {public = true, links = {"boost_atomic-mt", "boost_filesystem-mt"}})
   add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
   add_includedirs("include/", {public = true})
-  add_cxxflags("-std=c++2c", {public = true})
+  --add_cxxflags("-std=c++2c", {public = true})
   add_files("src/*.cpp")
+  set_languages("c++latest")
 
   if is_mode("debug") then
     set_symbols("debug", {public = true})

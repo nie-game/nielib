@@ -307,8 +307,10 @@ namespace nie {
 
   public:
     virtual void fancy_debug(fancy_interface* i) override {
+#if __cpp_lib_print >= 202207L
       for (size_t j = 0; j < fancy_cast_slot_count(); j++)
         std::println("Check {}=={}", fancy_cast_name_slots_instance[j], i);
+#endif
     }
   };
   template <typename D> inline D* fancy_cast(is_fancy* s, nie::source_location location) {
