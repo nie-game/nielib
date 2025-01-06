@@ -46,6 +46,20 @@ namespace nie {
   template <string_literal... a>
   inline constexpr string_literal<string_literal_cat_r<a...>::result().size() + 1> string_literal_cat = string_literal_cat_r<a...>::result;
 
+  template <string_literal... a> struct dotted_t {
+    inline static constexpr string_literal<1> value = {{0}};
+  };
+  template <string_literal a> struct dotted_t<a> {
+    inline static constexpr auto value = a;
+  };
+  template <string_literal a, string_literal b> struct dotted_t<a, b> {
+    inline static constexpr auto value = string_literal_cat<a, ".", b>;
+  };
+  template <string_literal a, string_literal... b> struct dotted_t<a, b...> {
+    inline static constexpr auto value = string_literal_cat<a, ".", dotted_t<b...>::value>;
+  };
+  template <string_literal... a> inline constexpr auto dotted = dotted_t<a...>::value;
+
   struct string_data {
     [[gnu::const]] virtual std::string_view text() const = 0;
   };

@@ -59,7 +59,7 @@ namespace nie {
     std::unique_lock lock(cache_ptr().cache_mutex);
     if (cache_ptr().cache_.contains(d->text())) {
 #ifdef NIELIB_FULL
-      log.error<"register">("Duplicate {}", d->text());
+      log.error<"register">("duplicate"_log = d->text());
 #endif
     }
     nie::require(!cache_ptr().cache_.contains(d->text()));

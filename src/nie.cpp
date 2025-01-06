@@ -24,7 +24,7 @@ namespace nie {
 #ifdef NIELIB_FULL
       : message(std::format("NYI at {}: {}", location, text)) {
     static logger<"nyi"> nyi_logger = {};
-    nyi_logger.warn<"instances">("NYI at {}: {}", location, text);
+    nyi_logger.warn<"NYI at {}: {}">("location"_log = location, "message"_log = text);
   }
 #else
       : message(std::string("NYI at ") + std::string(location.file_name()) + std::string(":") + std::to_string(location.line()) +
