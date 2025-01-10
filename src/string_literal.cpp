@@ -3,11 +3,11 @@
 #ifdef NIELIB_FULL
 #include <nie/log.hpp>
 #endif
+#include <forward_list>
 #include <nie/startup.hpp>
 #include <nie/string_literal.hpp>
 #include <print>
 #include <shared_mutex>
-#include <forward_list>
 
 namespace nie {
   using namespace std::literals;
@@ -18,7 +18,7 @@ namespace nie {
 #endif
   } // namespace
 
-  struct dynamic_string_data : string_data {
+  struct dynamic_string_data final : string_data {
     std::string t;
     dynamic_string_data(std::string t) : t(std::move(t)) {}
     std::string_view text() const override {

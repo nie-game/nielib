@@ -83,6 +83,9 @@ namespace nie {
     inline auto operator<=>(const string& other) const {
       return data_ <=> other.data_;
     }
+    inline const void* ptr() const {
+      return data_;
+    }
 
   private:
     inline string(string_data const* data_) : data_(data_) {}

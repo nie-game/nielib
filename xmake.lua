@@ -99,40 +99,42 @@ do
 
   on_load(function(target)
     target.after_build_breakpad = (function(target)
-      if not is_mode("release") then
-        -- if false then
-        local dumper =
-          path.join(assert(target:pkg("nie-breakpad"), "missing breakpad"):installdir(), "bin", "dump_syms")
-        local function dump_syms(f)
-          local out = os.iorunv(dumper, {"-i", f})
-          local platform, architecture, hash, name = out:match("^MODULE (%g+) (%g+) (%g+) (%g+)\n")
-          local fn = "symbols/" .. platform .. "/" .. architecture .. "/" .. name .. "/" .. hash .. "/" .. name ..
-                       ".sym"
-          if not os.exists(fn) then
-            print("dumping " .. f .. " into " .. fn)
-            os.exec("mkdir -p symbols/" .. platform .. "/" .. architecture .. "/" .. name .. "/" .. hash)
-            os.exec("bash -c '%s -d -v %s 2>%s > %s'", dumper, f, fn .. ".err", fn)
-          end
+      -- if not is_mode("release") then
+      -- if false then
+      local t2 = target:targetfile() .. "_dist"
+      print(target:targetfile(), t2, os.filesize(t2))
+      os.cp(target:targetfile(), t2)
+      local dumper = path.join(assert(target:pkg("nie-breakpad"), "missing breakpad"):installdir(), "bin", "dump_syms")
+      local dumper = "/home/christian/nie-game/libs/nielib/breakpad/src/tools/linux/dump_syms/dump_syms"
+      local function dump_syms(f)
+        local out = os.iorunv(dumper, {"-i", f})
+        local platform, architecture, hash, name = out:match("^MODULE (%g+) (%g+) (%g+) (%g+)\n")
+        local fn = "symbols/" .. platform .. "/" .. architecture .. "/" .. hash .. ".sym.zst"
+        if os.exists(fn) then
+          print("found " .. f .. " with " .. fn)
+        else
+          print("dumping " .. f .. " into " .. fn)
+          os.exec("mkdir -p symbols/" .. platform .. "/" .. architecture)
+          os.exec("bash -c '%s -d -v -m %s 2>%s |zstd -22 --ultra > %s'", dumper, f, "/tmp/" .. hash .. ".err", fn)
         end
-        dump_syms(target:targetfile())
-        local fl = table.join({"-d", "-r", target:targetfile()} --[[,
+      end
+      dump_syms(target:targetfile())
+      dump_syms(t2)
+      local fl = table.join({"-d", "-r", target:targetfile(), t2} --[[,
         (os.match("/usr/lib/x86_64-linux-gnu/libvulkan*.so*", false)),
         (os.match("/usr/lib/x86_64-linux-gnu/nvidia/current/*.so*", false)),
         (os.match("/usr/lib/x86_64-linux-gnu/libVk*.so*", false)),
         (os.match("/usr/lib/x86_64-linux-gnu/libnvidia-*.so*", false))]] )
-        local ldd = os.iorunv("ldd", is_mode("release") and {"-d", "-r", target:targetfile()} or fl)
-        for file in ldd:gmatch("=> (.-) %(0x[0-9a-fA-F]*%)") do
-          dump_syms(file)
-        end
-        dump_syms(
-          "/opt/nvidia/nsight-graphics-for-linux/nsight-graphics-for-linux-2024.2.0.0/target/linux-desktop-nomad-x64/libNvda.Graphics.Interception.so")
+      local ldd = os.iorunv("ldd", is_mode("release") and {"-d", "-r", target:targetfile(), t2} or fl)
+      for file in ldd:gmatch("=> (.-) %(0x[0-9a-fA-F]*%)") do
+        dump_syms(file)
       end
-      local t2 = target:targetfile() .. "_dist"
-      print(target:targetfile(), t2, os.filesize(t2))
-      os.cp(target:targetfile(), t2)
-      os.execv("llvm-strip", {"-sx", t2})
-      os.exec("llvm-objcopy --localize-hidden --discard-all --strip-all --strip-unneeded \"%s\"", t2)
-      os.exec("llvm-strip -sx \"%s\"", t2)
+      dump_syms(
+        "/opt/nvidia/nsight-graphics-for-linux/nsight-graphics-for-linux-2024.2.0.0/target/linux-desktop-nomad-x64/libNvda.Graphics.Interception.so")
+      -- end
+      os.execv("llvm-strip", {"-sxX", t2})
+      os.exec("llvm-objcopy --localize-hidden --discard-all --discard-locals --strip-all --strip-unneeded \"%s\"", t2)
+      os.exec("llvm-strip -sxX \"%s\"", t2)
       -- end
     end)
   end)
@@ -163,7 +165,7 @@ do
   add_packages("boost", {public = true, links = {"boost_atomic-mt", "boost_filesystem-mt"}})
   add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
   add_includedirs("include/", {public = true})
-  --add_cxxflags("-std=c++2c", {public = true})
+  -- add_cxxflags("-std=c++2c", {public = true})
   add_files("src/*.cpp")
   set_languages("c++latest")
 
