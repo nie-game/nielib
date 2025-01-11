@@ -116,6 +116,7 @@ do
           print("dumping " .. f .. " into " .. fn)
           os.exec("mkdir -p symbols/" .. platform .. "/" .. architecture)
           os.exec("bash -c '%s -d -v -m %s 2>%s |zstd -22 --ultra > %s'", dumper, f, "/tmp/" .. hash .. ".err", fn)
+          print("dumped " .. f .. " into " .. fn)
         end
       end
       dump_syms(target:targetfile())
@@ -125,12 +126,14 @@ do
         (os.match("/usr/lib/x86_64-linux-gnu/nvidia/current/*.so*", false)),
         (os.match("/usr/lib/x86_64-linux-gnu/libVk*.so*", false)),
         (os.match("/usr/lib/x86_64-linux-gnu/libnvidia-*.so*", false))]] )
-      local ldd = os.iorunv("ldd", is_mode("release") and {"-d", "-r", target:targetfile(), t2} or fl)
-      for file in ldd:gmatch("=> (.-) %(0x[0-9a-fA-F]*%)") do
-        dump_syms(file)
+      if (target:filename() ~= "nie") or not is_mode("release") then
+        local ldd = os.iorunv("ldd", is_mode("release") and {"-d", "-r", target:targetfile(), t2} or fl)
+        for file in ldd:gmatch("=> (.-) %(0x[0-9a-fA-F]*%)") do
+          dump_syms(file)
+        end
+        dump_syms(
+          "/opt/nvidia/nsight-graphics-for-linux/nsight-graphics-for-linux-2024.2.0.0/target/linux-desktop-nomad-x64/libNvda.Graphics.Interception.so")
       end
-      dump_syms(
-        "/opt/nvidia/nsight-graphics-for-linux/nsight-graphics-for-linux-2024.2.0.0/target/linux-desktop-nomad-x64/libNvda.Graphics.Interception.so")
       -- end
       os.execv("llvm-strip", {"-sxX", t2})
       os.exec("llvm-objcopy --localize-hidden --discard-all --discard-locals --strip-all --strip-unneeded \"%s\"", t2)
