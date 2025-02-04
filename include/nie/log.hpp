@@ -283,7 +283,10 @@ namespace nie {
 
     inline static void write(auto& logger, const log_param<a, spinemarrow::node_handle>& v);
     inline static void format(std::stringstream& ss, const log_param<a, spinemarrow::node_handle>& v) {
-      ss << std::format("{}", v.value);
+      if (v.value)
+        ss << v.value->key();
+      else
+        ss << "(nil)";
     }
   };
   template <typename T> struct log_name;
@@ -303,24 +306,24 @@ namespace nie {
   };
 
   template <string_literal... area> struct logger {
-    template <string_literal message, typename... T> void trace(T&&... args) {
-      do_log<level_e::trace, message, T...>(std::forward<T>(args)...);
+    template <string_literal message, typename... T> inline void trace(const T&... args) {
+      do_log<level_e::trace, message, T...>(args...);
     }
-    template <string_literal message, typename... T> void debug(T&&... args) {
-      do_log<level_e::debug, message, T...>(std::forward<T>(args)...);
+    template <string_literal message, typename... T> inline void debug(const T&... args) {
+      do_log<level_e::debug, message, T...>(args...);
     }
-    template <string_literal message, typename... T> void info(T&&... args) {
-      do_log<level_e::info, message, T...>(std::forward<T>(args)...);
+    template <string_literal message, typename... T> inline void info(const T&... args) {
+      do_log<level_e::info, message, T...>(args...);
     }
-    template <string_literal message, typename... T> void warn(T&&... args) {
-      do_log<level_e::warn, message, T...>(std::forward<T>(args)...);
+    template <string_literal message, typename... T> inline void warn(const T&... args) {
+      do_log<level_e::warn, message, T...>(args...);
     }
-    template <string_literal message, typename... T> void error(T&&... args) {
-      do_log<level_e::error, message, T...>(std::forward<T>(args)...);
+    template <string_literal message, typename... T> inline void error(const T&... args) {
+      do_log<level_e::error, message, T...>(args...);
     }
 
   private:
-    template <level_e level, string_literal message, typename... Args> inline void do_log(Args&&... args) {
+    template <level_e level, string_literal message, typename... Args> inline void do_log(const Args&... args) {
       auto now = std::chrono::tai_clock::now();
       using msg = log_message<level, dotted<area..., message>, log_name<Args>::name...>;
       auto ptr = &msg::singleton;
@@ -340,7 +343,30 @@ namespace nie {
       };
       varint_logger<length_log> ll;
       n(ll);
-      auto frame = log_frame(ll.length + (-ll.length & 7), now);
+      if (ll.length & 7ULL) {
+        ll.length &= ~7ULL;
+        ll.length += 8ULL;
+      }
+      // #ifndef NDEBUG
+      if (ll.length >= 65536) {
+        std::stringstream ss;
+        bool first = true;
+        auto m = [&]<typename T>(const T& arg) {
+          if (!first)
+            ss << ", ";
+          first = false;
+          ss << log_name<T>::name() << " = ";
+          log_info<T>::format(ss, arg);
+        };
+        (m(args), ...);
+        std::println("FAT!!! [{}] {} {}: {}", now, int(level), dotted<area..., message>(), ss.str());
+        std::cout << std::endl;
+        abort();
+        return;
+      }
+      // #endif
+      assert(ll.length < 65536);
+      auto frame = log_frame(ll.length, now);
       if (frame) [[likely]] {
         struct block_log {
           size_t leftover = 0;
@@ -381,11 +407,18 @@ namespace nie {
   };
   template <nie::string_literal a>
   inline void log_info<log_param<a, spinemarrow::node_handle>>::write(auto& logger, const log_param<a, spinemarrow::node_handle>& v) {
-    if (!v.value->logged.exchange(true)) [[unlikely]]
-      nie::logger<"spinemarrow">{}.info<"node_handle">("hash"_log = v.value->hash(), "name"_log = v.value->key());
-    logger.template write_int<uint64_t>(v.value->hash());
+    auto ptr = v.value;
+    if (ptr) {
+      if (!ptr->logged.exchange(true)) [[unlikely]]
+        nie::logger<"spinemarrow">{}.info<"node_handle">("hash"_log = ptr->hash(), "name"_log = ptr->key());
+      logger.template write_int<uint64_t>(ptr->hash());
+    } else
+      logger.template write_int<uint64_t>(0);
   }
 
 } // namespace nie
+inline void bleh(std::source_location location = std::source_location::current()) {
+  nie::logger<>{}.trace<"bleh">("location"_log = location);
+}
 
 #endif

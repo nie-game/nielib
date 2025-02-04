@@ -1,5 +1,5 @@
 set_config("vs", "2022")
-add_requires("fmt", "boost", "nie-breakpad", "bzip2")
+add_requires("fmt", "boost boost-1.87.0", "nie-breakpad", "bzip2")
 -- add_requires("stack_alloc", "system_error2", "nontype_functional", "concurrentqueue", "short_alloc", "skia-ref_ptr",
 --  "expected")
 package("stack_alloc")
@@ -96,6 +96,15 @@ do
   add_packages("nie-breakpad", {links = "breakpad_client", public = true})
   add_files("src/*.cpp")
   add_defines("NIELIB_FULL", {public = true})
+
+  if is_mode("debug") then
+    -- set_policy("build.sanitizer.address", true, {public = true})
+    -- set_policy("build.sanitizer.undefined", true, {public = true})
+    -- set_policy("build.sanitizer.memory", true, {public = true})
+    add_cxxflags("-fstack-protector-all", "-mshstk", "-fsanitize=safe-stack", {public = true})
+    add_ldflags("-fstack-protector-all", "-mshstk", "-fsanitize=safe-stack", {public = true})
+    add_shflags("-fstack-protector-all", "-mshstk", "-fsanitize=safe-stack", {public = true})
+  end
 
   on_load(function(target)
     target.after_build_breakpad = (function(target)

@@ -43,8 +43,8 @@ namespace nie {
   }
 
   struct log_frame_t {
-    uint64_t size;
-    uint64_t time;
+    volatile uint64_t size;
+    volatile uint64_t time;
     char data[];
     inline log_frame_t(size_t size, std::chrono::tai_clock::time_point time)
         : size(size), time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()) {}
@@ -59,13 +59,15 @@ namespace nie {
   char* log_frame(size_t size, std::chrono::tai_clock::time_point time) {
 #ifdef NIELIB_FULL
     assert(size % 8 == 0);
+    // std::cout << "SIZE " << size << std::endl;
+    assert(size < 65536);
     if (nie::log::nie_log_buffer) {
       auto offset = nie::log::nie_log_buffer->content_length.fetch_add(size + sizeof(log_frame_t));
       assert(offset % 8 == 0);
       if ((offset + size) >= 2147483648ULL) {
-#ifndef NDEBUG
-        nie::fatal();
-#endif
+        std::cout << "Log Buffer Full" << std::endl;
+        *(volatile char*)(0) = 0;
+        return nullptr;
       } else
         return &((new (reinterpret_cast<char*>(nie::log::nie_log_buffer) + offset) log_frame_t(size + sizeof(log_frame_t), time))->data[0]);
     }
@@ -141,12 +143,13 @@ namespace nie {
       if (map.contains(l))
         return map.at(l);
     }
+    auto idx = ctr++;
+    std::string_view funcn = l.function_name();
+    nie::logger<>{}.info<"source_location">(
+        "index"_log = idx, "function_name"_log = funcn, "file_name"_log = l.file_name(), "line"_log = l.line());
     std::unique_lock lock(mtx);
     if (map.contains(l))
       return map.at(l);
-    auto idx = ctr++;
-    nie::logger<>{}.info<"source_location">(
-        "index"_log = idx, "function_name"_log = l.function_name(), "file_name"_log = l.file_name(), "line"_log = l.line());
     map.emplace(l, idx);
     return idx;
   }
