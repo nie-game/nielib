@@ -96,6 +96,8 @@ do
   add_packages("nie-breakpad", {links = "breakpad_client", public = true})
   add_files("src/*.cpp")
   add_defines("NIELIB_FULL", {public = true})
+  add_cxflags("-fasynchronous-unwind-tables", {public = true})
+  add_ldflags("-fasynchronous-unwind-tables", {public = true})
 
   if is_mode("debug") then
     -- set_policy("build.sanitizer.address", true, {public = true})
@@ -124,7 +126,7 @@ do
         else
           print("dumping " .. f .. " into " .. fn)
           os.exec("mkdir -p symbols/" .. platform .. "/" .. architecture)
-          os.exec("bash -c '%s -d -v -m %s 2>%s |zstd -22 --ultra > %s'", dumper, f, "/tmp/" .. hash .. ".err", fn)
+          os.exec("bash -c '%s -d -v -m %s 2>%s |zstd -22 --ultra > %s &'", dumper, f, "/tmp/" .. hash .. ".err", fn)
           print("dumped " .. f .. " into " .. fn)
         end
       end

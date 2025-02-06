@@ -1,6 +1,7 @@
 #ifndef NIE_LOG_HPP
 #define NIE_LOG_HPP
 
+#include "function_ref.hpp"
 #include "startup.hpp"
 #include "string_literal.hpp"
 
@@ -60,6 +61,7 @@ namespace nie {
     node_handle,
     cached_string,
     binary,
+    capnp,
     invalid = 255, //
   };
   template <typename T, typename Enabler = void> struct log_info;
@@ -146,6 +148,7 @@ namespace nie {
     }
   };
   void register_nie_string(nie::string);
+  void register_capnp(uint64_t, const nie::function_ref<void()>&);
   template <nie::string_literal a> struct log_info<log_param<a, nie::string>> {
     static constexpr encoding_type type = encoding_type::cached_string;
 

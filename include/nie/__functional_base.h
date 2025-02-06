@@ -3,7 +3,7 @@
 #include <functional>
 #include <utility>
 
-namespace std23 {
+namespace nie {
 
   template <auto V>
   struct nontype_t // freestanding
@@ -79,7 +79,7 @@ namespace std23 {
 
   template <class R, class... Args> struct _not_qualifying_this<R(Args...) const volatile> : _not_qualifying_this<R(Args...)> {};
 
-  template <class R, class... Args> struct _not_qualifying_this<R(Args...)&> : _not_qualifying_this<R(Args...)> {};
+  template <class R, class... Args> struct _not_qualifying_this<R(Args...) &> : _not_qualifying_this<R(Args...)> {};
 
   template <class R, class... Args> struct _not_qualifying_this<R(Args...) const&> : _not_qualifying_this<R(Args...)> {};
 
@@ -146,4 +146,4 @@ namespace std23 {
 
   template <class F, class T> using _drop_first_arg_to_invoke_t = _drop_first_arg_to_invoke<F, T>::type;
 
-} // namespace std23
+} // namespace nie

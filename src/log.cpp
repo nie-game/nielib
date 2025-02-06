@@ -119,6 +119,19 @@ namespace nie {
              (a.column() == b.column());
     }
   };
+  void register_capnp(uint64_t s, const nie::function_ref<void()>& cb) {
+    static std::shared_mutex mtx;
+    static std::unordered_set<uint64_t> set = {0xE682AB4CF923A417ULL};
+    {
+      std::shared_lock lock(mtx);
+      if (set.contains(s))
+        return;
+    }
+    cb();
+    std::unique_lock lock(mtx);
+    set.insert(s);
+    return;
+  }
   void register_nie_string(nie::string s) {
     static std::shared_mutex mtx;
     static std::unordered_set<nie::string> set;

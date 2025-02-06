@@ -4,7 +4,7 @@
 
 #include <cassert>
 
-namespace std23 {
+namespace nie {
 
   template <class Sig> struct _qual_fn_sig;
 
@@ -117,7 +117,7 @@ namespace std23 {
     constexpr function_ref(nontype_t<f>) noexcept
       requires is_invocable_using<decltype(f)>
         : fptr_([](storage, _param_t<Args>... args) noexcept(
-                    noex) -> R { return std23::invoke_r<R>(f, static_cast<decltype(args)>(args)...); }) {
+                    noex) -> R { return nie::invoke_r<R>(f, static_cast<decltype(args)>(args)...); }) {
       using F = decltype(f);
       if constexpr (std::is_pointer_v<F> or std::is_member_pointer_v<F>)
         static_assert(f != nullptr, "NTTP callable must be usable");
@@ -128,7 +128,7 @@ namespace std23 {
       requires(not std::is_rvalue_reference_v<U &&> and is_invocable_using<decltype(f), cvref<T>>)
         : fptr_([](storage this_, _param_t<Args>... args) noexcept(noex) -> R {
             cvref<T> obj = *get<T>(this_);
-            return std23::invoke_r<R>(f, obj, static_cast<decltype(args)>(args)...);
+            return nie::invoke_r<R>(f, obj, static_cast<decltype(args)>(args)...);
           }),
           obj_(std::addressof(obj)) {
       using F = decltype(f);
@@ -140,7 +140,7 @@ namespace std23 {
     constexpr function_ref(nontype_t<f>, cv<T>* obj) noexcept
       requires is_invocable_using<decltype(f), decltype(obj)>
         : fptr_([](storage this_, _param_t<Args>... args) noexcept(
-                    noex) -> R { return std23::invoke_r<R>(f, get<cv<T>>(this_), static_cast<decltype(args)>(args)...); }),
+                    noex) -> R { return nie::invoke_r<R>(f, get<cv<T>>(this_), static_cast<decltype(args)>(args)...); }),
           obj_(obj) {
       using F = decltype(f);
       if constexpr (std::is_pointer_v<F> or std::is_member_pointer_v<F>)
@@ -163,10 +163,10 @@ namespace std23 {
 
   template <auto V, class T> function_ref(nontype_t<V>, T&&) -> function_ref<_drop_first_arg_to_invoke_t<decltype(V), T&>>;
 
-} // namespace std23
+} // namespace nie
 
 #if !(__cpp_lib_function_ref >= 202306L)
 namespace std {
-  using namespace std23;
+  using namespace nie;
 }
 #endif

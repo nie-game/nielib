@@ -5,7 +5,7 @@
 #include <new>
 #include <utility>
 
-namespace std23 {
+namespace nie {
 
   template <class Sig> struct _cv_fn_sig {};
 
@@ -23,7 +23,7 @@ namespace std23 {
     template <class T> using ref = T;
   };
 
-  template <class R, class... Args> struct _ref_quals_fn_sig<R(Args...)&> : _cv_fn_sig<R(Args...)> {
+  template <class R, class... Args> struct _ref_quals_fn_sig<R(Args...) &> : _cv_fn_sig<R(Args...)> {
     template <class T> using ref = T&;
   };
 
@@ -47,7 +47,7 @@ namespace std23 {
 
   template <class R, class... Args> struct _full_fn_sig<R(Args...) noexcept> : _ref_quals_fn_sig<R(Args...)>, _noex_traits<true> {};
 
-  template <class R, class... Args> struct _full_fn_sig<R(Args...) & noexcept> : _ref_quals_fn_sig<R(Args...)&>, _noex_traits<true> {};
+  template <class R, class... Args> struct _full_fn_sig<R(Args...) & noexcept> : _ref_quals_fn_sig<R(Args...) &>, _noex_traits<true> {};
 
   template <class R, class... Args> struct _full_fn_sig<R(Args...) && noexcept> : _ref_quals_fn_sig<R(Args...) &&>, _noex_traits<true> {};
 
@@ -161,10 +161,10 @@ namespace std23 {
         .call = [](handle this_, Args... args) noexcept(noex) -> R {
           if constexpr (std::is_lvalue_reference_v<T> or std::is_pointer_v<T>) {
             using Tp = std::remove_reference_t<std::remove_pointer_t<T>>;
-            return std23::invoke_r<R>(*get<Tp>(this_), static_cast<Args>(args)...);
+            return nie::invoke_r<R>(*get<Tp>(this_), static_cast<Args>(args)...);
           } else {
             using Fp = quals<T>::type;
-            return std23::invoke_r<R>(static_cast<Fp>(*get<T>(this_)), static_cast<Args>(args)...);
+            return nie::invoke_r<R>(static_cast<Fp>(*get<T>(this_)), static_cast<Args>(args)...);
           }
         },
         .destroy =
@@ -176,7 +176,7 @@ namespace std23 {
 
     template <auto f>
     static inline constinit vtable const unbound_callable_target{
-        .call = [](handle, Args... args) noexcept(noex) -> R { return std23::invoke_r<R>(f, static_cast<Args>(args)...); },
+        .call = [](handle, Args... args) noexcept(noex) -> R { return nie::invoke_r<R>(f, static_cast<Args>(args)...); },
     };
 
     template <auto f, class T, template <class> class quals>
@@ -184,13 +184,13 @@ namespace std23 {
         .call = [](handle this_, Args... args) noexcept(noex) -> R {
           if constexpr (std::is_pointer_v<T>) {
             using Tp = std::remove_pointer_t<T>;
-            return std23::invoke_r<R>(f, get<Tp>(this_), static_cast<Args>(args)...);
+            return nie::invoke_r<R>(f, get<Tp>(this_), static_cast<Args>(args)...);
           } else if constexpr (std::is_lvalue_reference_v<T>) {
             using Tp = std::remove_reference_t<T>;
-            return std23::invoke_r<R>(f, *get<Tp>(this_), static_cast<Args>(args)...);
+            return nie::invoke_r<R>(f, *get<Tp>(this_), static_cast<Args>(args)...);
           } else {
             using Fp = quals<T>::type;
-            return std23::invoke_r<R>(f, static_cast<Fp>(*get<T>(this_)), static_cast<Args>(args)...);
+            return nie::invoke_r<R>(f, static_cast<Fp>(*get<T>(this_)), static_cast<Args>(args)...);
           }
         },
         .destroy =
@@ -203,7 +203,7 @@ namespace std23 {
     template <auto f, class T>
     static inline constinit vtable const boxed_callable_target{
         .call = [](handle this_, Args... args) noexcept(
-                    noex) -> R { return std23::invoke_r<R>(f, get<T>(this_), static_cast<Args>(args)...); },
+                    noex) -> R { return nie::invoke_r<R>(f, get<T>(this_), static_cast<Args>(args)...); },
         .destroy =
             [](handle this_) noexcept {
               using D = std::unique_ptr<T>::deleter_type;
@@ -283,7 +283,7 @@ namespace std23 {
         : vtbl_(trait::template bound_callable_target<f, std::unwrap_ref_decay_t<T>, inv_quals_f>),
           obj_(_take_reference(std::forward<T>(x))) {}
 
-    template <class M, class C, M C::*f, class T>
+    template <class M, class C, M C::* f, class T>
     inline move_only_function(nontype_t<f>, std::unique_ptr<T>&& x) noexcept
       requires std::is_base_of_v<C, T> and is_callable_as_if_from<f, T*>
         : vtbl_(trait::template boxed_callable_target<f, T>), obj_(x.release()) {}
@@ -319,7 +319,7 @@ namespace std23 {
       static_assert(std::is_same_v<std::decay_t<T>, T>);
     }
 
-    template <class M, class C, M C::*f, class T, class... Inits>
+    template <class M, class C, M C::* f, class T, class... Inits>
     inline explicit move_only_function(nontype_t<f> t,
         in_place_type_t<std::unique_ptr<T>>,
         Inits&&... inits) noexcept( //
@@ -399,10 +399,10 @@ namespace std23 {
     }
   };
 
-} // namespace std23
+} // namespace nie
 
 #if !(__cpp_lib_move_only_function >= 202110L)
 namespace std {
-  using namespace std23;
+  using namespace nie;
 }
 #endif
