@@ -50,7 +50,7 @@ end
 package_end()
 package("nie-breakpad")
 do
-  set_sourcedir(path.join(os.scriptdir(), "breakpad"))
+  set_urls("git@github.com:nie-game/breakpad.git")
   add_includedirs("include/breakpad")
 
   on_install(function(package)
