@@ -1488,8 +1488,7 @@ namespace moodycamel {
         while (head != nullptr) {
           auto prevHead = head;
           auto refs = head->freeListRefs.load(std::memory_order_relaxed);
-          if ((refs & REFS_MASK) == 0 ||
-              !head->freeListRefs.compare_exchange_strong(refs, refs + 1, std::memory_order_acquire, std::memory_order_relaxed)) {
+          if ((refs & REFS_MASK) == 0 || !head->freeListRefs.compare_exchange_strong(refs, refs + 1, std::memory_order_acquire)) {
             head = freeListHead.load(std::memory_order_acquire);
             continue;
           }
@@ -1540,7 +1539,7 @@ namespace moodycamel {
           node->freeListRefs.store(1, std::memory_order_release);
           if (!freeListHead.compare_exchange_strong(head, node, std::memory_order_release, std::memory_order_relaxed)) {
             // Hmm, the add failed, but we can only try again when the refcount goes back to zero
-            if (node->freeListRefs.fetch_add(SHOULD_BE_ON_FREELIST - 1, std::memory_order_release) == 1) {
+            if (node->freeListRefs.fetch_add(SHOULD_BE_ON_FREELIST - 1, std::memory_order_acq_rel) == 1) {
               continue;
             }
           }
@@ -1608,7 +1607,7 @@ namespace moodycamel {
         }
         else {
           // Increment counter
-          auto prevVal = elementsCompletelyDequeued.fetch_add(1, std::memory_order_release);
+          auto prevVal = elementsCompletelyDequeued.fetch_add(1, std::memory_order_acq_rel);
           assert(prevVal < BLOCK_SIZE);
           return prevVal == BLOCK_SIZE - 1;
         }
@@ -1629,7 +1628,7 @@ namespace moodycamel {
         }
         else {
           // Increment counter
-          auto prevVal = elementsCompletelyDequeued.fetch_add(count, std::memory_order_release);
+          auto prevVal = elementsCompletelyDequeued.fetch_add(count, std::memory_order_acq_rel);
           assert(prevVal + count <= BLOCK_SIZE);
           return prevVal + count == BLOCK_SIZE;
         }
@@ -2350,8 +2349,8 @@ namespace moodycamel {
 
         // Create the new block
         pr_blockIndexSize <<= 1;
-        auto newRawPtr = static_cast<char*>((Traits::malloc)(
-            sizeof(BlockIndexHeader) + std::alignment_of<BlockIndexEntry>::value - 1 + sizeof(BlockIndexEntry) * pr_blockIndexSize));
+        auto newRawPtr = static_cast<char*>((Traits::malloc)(sizeof(BlockIndexHeader) + std::alignment_of<BlockIndexEntry>::value - 1 +
+                                                             sizeof(BlockIndexEntry) * pr_blockIndexSize));
         if (newRawPtr == nullptr) {
           pr_blockIndexSize >>= 1; // Reset to allow graceful retry
           return false;
@@ -3335,7 +3334,7 @@ namespace moodycamel {
         } else {
           ImplicitProducerHash* hash;
           for (hash = implicitProducerHash.load(std::memory_order_relaxed); hash->prev != &other.initialImplicitProducerHash;
-               hash = hash->prev) {
+              hash = hash->prev) {
             continue;
           }
           hash->prev = &initialImplicitProducerHash;
@@ -3345,7 +3344,7 @@ namespace moodycamel {
         } else {
           ImplicitProducerHash* hash;
           for (hash = other.implicitProducerHash.load(std::memory_order_relaxed); hash->prev != &initialImplicitProducerHash;
-               hash = hash->prev) {
+              hash = hash->prev) {
             continue;
           }
           hash->prev = &other.initialImplicitProducerHash;

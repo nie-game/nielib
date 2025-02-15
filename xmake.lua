@@ -99,7 +99,7 @@ do
   add_cxflags("-fasynchronous-unwind-tables", {public = true})
   add_ldflags("-fasynchronous-unwind-tables", {public = true})
 
-  if is_mode("debug") then
+  if true and is_mode("debug") then
     -- set_policy("build.sanitizer.address", true, {public = true})
     -- set_policy("build.sanitizer.undefined", true, {public = true})
     -- set_policy("build.sanitizer.memory", true, {public = true})

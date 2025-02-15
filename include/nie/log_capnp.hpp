@@ -16,16 +16,18 @@ namespace nie {
   template <typename T, typename v = void> struct base;
   template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Reader>>> {
     using type = typename T::Reader::Reads;
+    using well = void;
   };
   template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Reads>>> {
     using type = typename T::Reads;
+    using well = void;
   };
   template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Builds>>> {
     using type = typename T::Builds;
+    using well = void;
   };
 
-  template <nie::string_literal a, typename T>
-  struct log_info<log_param<a, T>, std::enable_if_t<std::is_constructible_v<capnp::DynamicValue::Reader, T>>> {
+  template <nie::string_literal a, typename T> struct log_info<log_param<a, T>, typename base<T>::well> {
     static constexpr encoding_type type = encoding_type::capnp;
     using B = typename base<T>::type;
     using R = typename B::Reader;
@@ -94,7 +96,7 @@ namespace nie {
       }
     }
 
-    inline static capnp::Schema schema(const R& v) {
+    inline static capnp::Schema schema(R v) {
       if constexpr (is_dynamic<typename R::Reads>::value)
         return v.getSchema();
       else
@@ -106,7 +108,9 @@ namespace nie {
       register_capnp(s.getProto().getId(), [&] { nie::logger<>{}.info<"capnp">("schema"_log = s.getProto()); });
       std::span<const char> str;
       if constexpr (is_dynamic<typename R::Reads>::value) {
-        auto c = static_cast<capnp::AnyStruct::Reader>(v.value).canonicalize();
+        using AR = capnp::AnyStruct::Reader;
+        auto r = v.value.operator AR();
+        auto c = r.canonicalize();
         str = std::span<const char>(reinterpret_cast<const char*>(c.begin()), reinterpret_cast<const char*>(c.end()));
       } else {
         R r = v.value;

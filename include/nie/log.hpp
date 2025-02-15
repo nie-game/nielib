@@ -2,6 +2,7 @@
 #define NIE_LOG_HPP
 
 #include "function_ref.hpp"
+#include "require.hpp"
 #include "startup.hpp"
 #include "string_literal.hpp"
 
@@ -302,7 +303,26 @@ namespace nie {
     }
   };
 
-  enum class level_e { error, warn, info, debug, trace };
+  using namespace std::literals;
+
+  enum class level_e { error, warn, info, debug, trace, fatal };
+  inline std::string_view levstr(level_e l) {
+    switch (l) {
+      using enum level_e;
+    case error:
+      return "eror"sv;
+    case warn:
+      return "warn"sv;
+    case info:
+      return "info"sv;
+    case debug:
+      return "debg"sv;
+    case trace:
+      return "trac"sv;
+    case fatal:
+      return "fatl"sv;
+    }
+  }
   template <level_e level, string_literal message, string_literal... Args> struct log_message {
     inline static bool is_disabled = nie::register_startup([] { add_log_disabler(message(), &is_disabled); }) && false;
     inline static const bool singleton = false;
@@ -323,6 +343,10 @@ namespace nie {
     }
     template <string_literal message, typename... T> inline void error(const T&... args) {
       do_log<level_e::error, message, T...>(args...);
+    }
+    template <string_literal message, typename... T> [[noreturn]] inline void fatal(const T&... args) {
+      do_log<level_e::fatal, message, T...>(args...);
+      nie::fatal("fatal failed");
     }
 
   private:
@@ -362,7 +386,7 @@ namespace nie {
           log_info<T>::format(ss, arg);
         };
         (m(args), ...);
-        std::println("FAT!!! [{}] {} {}: {}", now, int(level), dotted<area..., message>(), ss.str());
+        std::println("FAT!!! [{}] {} {}: {}", now, levstr(level), dotted<area..., message>(), ss.str());
         std::cout << std::endl;
         abort();
         return;
@@ -388,7 +412,9 @@ namespace nie {
         while (size_t(bl.ptr) % 8)
           *(bl.ptr++) = 0;
       }
-#ifndef NDEBUG
+#ifdef NDEBUG
+      if constexpr ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal))
+#endif
       {
         std::stringstream ss;
         bool first = true;
@@ -400,12 +426,16 @@ namespace nie {
           log_info<T>::format(ss, arg);
         };
         (m(args), ...);
-        if (!msg::is_disabled) {
-          write_log_file(std::format("[{}] {} {}: {}", now, int(level), dotted<area..., message>(), ss.str()));
-          std::println("[{}] {} {}: {}", now, int(level), dotted<area..., message>(), ss.str());
+        if constexpr ((level == level_e::fatal)) {
+          write_log_file(std::format("[{}] {} {}: {}", now, levstr(level), dotted<area..., message>(), ss.str()));
+          std::println("[{}] {} {}: {}", now, levstr(level), dotted<area..., message>(), ss.str());
+          std::cout << std::endl;
+          nie::fatal(std::format("{}: {}", dotted<area..., message>(), ss.str()));
+        } else if (!msg::is_disabled) {
+          write_log_file(std::format("[{}] {} {}: {}", now, levstr(level), dotted<area..., message>(), ss.str()));
+          std::println("[{}] {} {}: {}", now, levstr(level), dotted<area..., message>(), ss.str());
         }
       }
-#endif
     }
   };
   template <nie::string_literal a>
@@ -422,6 +452,10 @@ namespace nie {
 } // namespace nie
 inline void bleh(std::source_location location = std::source_location::current()) {
   nie::logger<>{}.trace<"bleh">("location"_log = location);
+}
+template <typename T> inline T bleh(T&& t, std::source_location location = std::source_location::current()) {
+  nie::logger<>{}.trace<"bleh">("location"_log = location);
+  return t;
 }
 
 #endif
