@@ -75,6 +75,7 @@ do
   end)
 end
 package_end()
+add_requires("nie-breakpad")
 target("nielib")
 do
   set_default(true)
