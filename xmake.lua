@@ -1,5 +1,3 @@
-set_config("vs", "2022")
-add_requires("fmt", "boost boost-1.87.0", "nie-breakpad", "bzip2")
 -- add_requires("stack_alloc", "system_error2", "nontype_functional", "concurrentqueue", "short_alloc", "skia-ref_ptr",
 --  "expected")
 package("stack_alloc")
@@ -79,6 +77,7 @@ end
 package_end()
 target("nielib")
 do
+  set_default(true)
   add_packages("stack_alloc")
   add_packages("system_error2")
   add_packages("nontype_functional")
@@ -174,6 +173,7 @@ end
 target_end()
 target("nielib_slim")
 do
+  set_default(false)
   set_kind("object")
   add_packages("stack_alloc")
   add_packages("boost", {public = true, links = {"boost_atomic-mt", "boost_filesystem-mt"}})
@@ -203,6 +203,7 @@ end
 target_end()
 target("nielib_slimmer")
 do
+  set_default(false)
   add_packages("stack_alloc")
   set_kind("headeronly")
   add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
