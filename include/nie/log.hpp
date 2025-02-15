@@ -324,8 +324,8 @@ namespace nie {
     }
   }
   template <level_e level, string_literal message, string_literal... Args> struct log_message {
-    inline static bool is_disabled = nie::register_startup([] { add_log_disabler(message(), &is_disabled); }) && false;
-    inline static const bool singleton = false;
+    inline static bool is_disabled = false;
+    inline static const bool singleton = nie::register_startup([] { add_log_disabler(message(), &is_disabled); });
   };
 
   template <string_literal... area> struct logger {
