@@ -89,6 +89,8 @@ do
   add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
   set_kind("object")
   add_includedirs("include/", {public = true})
+  add_headerfiles("include/(*.hpp)")
+  add_headerfiles("include/(nie/*.hpp)")
   add_cxxflags("-std=c++2c", {public = true})
   add_packages("fmt", {public = true})
   add_packages("boost", {public = true, links = {"boost_atomic-mt", "boost_filesystem-mt"}})
@@ -172,6 +174,12 @@ do
   add_defines("BOOST_ASIO_NO_EXCEPTIONS", {public = true})
 end
 target_end()
+target("nielib_dist")
+do
+  set_kind("static")
+  add_deps("nielib", {public = true})
+  set_default(true)
+end
 target("nielib_slim")
 do
   set_default(false)
