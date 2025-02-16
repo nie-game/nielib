@@ -52,6 +52,7 @@ package("nie-breakpad")
 do
   set_urls("git@github.com:nie-game/breakpad.git")
   add_includedirs("include/breakpad")
+  add_links("breakpad_client")
 
   on_install(function(package)
     os.vrun("rm -rf \"%s\"/src/third_party/lss", package:sourcedir())
@@ -89,8 +90,7 @@ do
   add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
   set_kind("object")
   add_includedirs("include/", {public = true})
-  add_headerfiles("include/(*.hpp)", {public = true})
-  add_headerfiles("include/(nie/*.hpp)", {public = true})
+  add_headerfiles("include/(**)", {public = true})
   add_cxxflags("-std=c++2c", {public = true})
   add_packages("fmt", {public = true})
   add_packages("boost", {public = true, links = {"boost_atomic-mt", "boost_filesystem-mt"}})
