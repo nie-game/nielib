@@ -243,6 +243,7 @@ namespace nie {
           idx++;
         }
       }
+      nie::require(idx == fancy_cast_slot_count());
       return ret;
     }
     static constexpr std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_rawslots() {

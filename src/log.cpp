@@ -12,7 +12,7 @@
 #ifdef NIELIB_FULL
 namespace nie::log {
   struct nie_log_buffer_t {
-    const uint64_t signature = 724313520984115534ULL;
+    volatile uint64_t signature;
     std::atomic<uint64_t> content_length = 16;
   };
   static_assert(sizeof(std::atomic<uint64_t>) == 8);

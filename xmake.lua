@@ -77,6 +77,9 @@ do
 end
 package_end()
 add_requires("nie-breakpad")
+-- add_requires("libxcb", {system = false, configs = {shared = false}})
+-- add_requires("libxdmcp", {system = false, configs = {shared = false}})
+-- add_requires("libxau", {system = false, configs = {shared = false}})
 target("nielib")
 do
   set_default(true)
@@ -87,6 +90,9 @@ do
   add_packages("short_alloc")
   add_packages("skia-ref_ptr")
   add_packages("expected")
+  -- add_packages("libxdmpc", {public = true, links = {"xcb", "Xau", "Xdmcp"}})
+  -- add_packages("libxau", {public = true, links = {"xcb", "Xau", "Xdmcp"}})
+  -- add_packages("libxcb", {public = true, links = {"xcb", "Xau", "Xdmcp"}})
   add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
   set_kind("object")
   add_includedirs("include/", {public = true})
@@ -101,7 +107,7 @@ do
   add_cxflags("-fasynchronous-unwind-tables", {public = true})
   add_ldflags("-fasynchronous-unwind-tables", {public = true})
 
-  if true and is_mode("debug") then
+  if false and is_mode("debug") then
     -- set_policy("build.sanitizer.address", true, {public = true})
     -- set_policy("build.sanitizer.undefined", true, {public = true})
     -- set_policy("build.sanitizer.memory", true, {public = true})

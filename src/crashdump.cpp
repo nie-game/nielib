@@ -10,7 +10,7 @@
 
 namespace nie::log {
   struct nie_log_buffer_t {
-    const uint64_t signature = 724313520984115534ULL;
+    volatile uint64_t signature;
     std::atomic<uint64_t> content_length = 16;
   };
   static_assert(sizeof(std::atomic<uint64_t>) == 8);
@@ -55,6 +55,7 @@ namespace nie {
       eh = std::unique_ptr<google_breakpad::ExceptionHandler>(
           new google_breakpad::ExceptionHandler(descriptor, NULL, &dump_callback, NULL, true, -1));
       nie::log::nie_log_buffer = new (malloc(2147483648ULL)) nie::log::nie_log_buffer_t;
+      nie::log::nie_log_buffer->signature = 724313520984115534ULL;
       eh->RegisterAppMemory(nie::log::nie_log_buffer, 16);
     }
   };
