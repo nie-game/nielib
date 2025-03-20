@@ -106,13 +106,15 @@ namespace nie {
     using arena_type = arena<size, alignment>;
 
   private:
-    arena_type& a_;
+    arena_type* a_ = nullptr;
 
   public:
     short_alloc(const short_alloc&) = default;
     short_alloc& operator=(const short_alloc&) = delete;
+    short_alloc(short_alloc&&) = default;
+    short_alloc& operator=(short_alloc&&) = default;
 
-    short_alloc(arena_type& a) noexcept : a_(a) {
+    short_alloc(arena_type& a) noexcept : a_(std::addressof(a)) {
       static_assert(size % alignment == 0, "size N needs to be a multiple of alignment Align");
     }
     template <class U> short_alloc(const short_alloc<U, N, alignment>& a) noexcept : a_(a.a_) {}
@@ -122,27 +124,18 @@ namespace nie {
     };
 
     T* allocate(std::size_t n) {
-      return reinterpret_cast<T*>(a_.template allocate<alignof(T)>(n * sizeof(T)));
+      return reinterpret_cast<T*>(a_->template allocate<alignof(T)>(n * sizeof(T)));
     }
     void deallocate(T* p, std::size_t n) noexcept {
-      a_.deallocate(reinterpret_cast<char*>(p), n * sizeof(T));
+      a_->deallocate(reinterpret_cast<char*>(p), n * sizeof(T));
     }
 
-    template <class T1, std::size_t N1, std::size_t A1, class U, std::size_t M, std::size_t A2>
-    friend bool operator==(const short_alloc<T1, N1, A1>& x, const short_alloc<U, M, A2>& y) noexcept;
+    template <class U, std::size_t M, std::size_t A2> inline bool operator==(const short_alloc<U, M, A2>& y) const noexcept {
+      return N == M && Align == A2 && this->a_ == y.a_;
+    }
 
     template <class U, std::size_t M, std::size_t A> friend class short_alloc;
   };
 } // namespace nie
-
-template <class T, std::size_t N, std::size_t A1, class U, std::size_t M, std::size_t A2>
-inline bool operator==(const nie::short_alloc<T, N, A1>& x, const nie::short_alloc<U, M, A2>& y) noexcept {
-  return N == M && A1 == A2 && &x.a_ == &y.a_;
-}
-
-template <class T, std::size_t N, std::size_t A1, class U, std::size_t M, std::size_t A2>
-inline bool operator!=(const nie::short_alloc<T, N, A1>& x, const nie::short_alloc<U, M, A2>& y) noexcept {
-  return !(x == y);
-}
 
 #endif
