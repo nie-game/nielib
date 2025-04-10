@@ -1,3 +1,0 @@
-[submodule "breakpad"]
-	path = breakpad
-	url = git@github.com:nie-game/breakpad.git
