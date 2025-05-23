@@ -17,7 +17,7 @@ namespace nie::log {
   };
   static_assert(sizeof(std::atomic<uint64_t>) == 8);
   static_assert(sizeof(nie_log_buffer_t) == 16);
-  extern nie_log_buffer_t* nie_log_buffer;
+  nie_log_buffer_t* nie_log_buffer_output = nullptr;
 } // namespace nie::log
 #endif
 
@@ -61,15 +61,15 @@ namespace nie {
     assert(size % 8 == 0);
     // std::cout << "SIZE " << size << std::endl;
     assert(size < 65536);
-    if (nie::log::nie_log_buffer) {
-      auto offset = nie::log::nie_log_buffer->content_length.fetch_add(size + sizeof(log_frame_t));
+    if (nie::log::nie_log_buffer_output) {
+      auto offset = nie::log::nie_log_buffer_output->content_length.fetch_add(size + sizeof(log_frame_t));
       assert(offset % 8 == 0);
       if ((offset + size) >= 2147483648ULL) {
         std::cout << "Log Buffer Full" << std::endl;
         *(volatile char*)(0) = 0;
         return nullptr;
       } else
-        return &((new (reinterpret_cast<char*>(nie::log::nie_log_buffer) + offset) log_frame_t(size + sizeof(log_frame_t), time))->data[0]);
+        return &((new (reinterpret_cast<char*>(nie::log::nie_log_buffer_output) + offset) log_frame_t(size + sizeof(log_frame_t), time))->data[0]);
     }
 #endif
     return nullptr;
