@@ -1,5 +1,39 @@
 -- add_requires("stack_alloc", "system_error2", "nontype_functional", "concurrentqueue", "short_alloc", "skia-ref_ptr",
 --  "expected")
+add_requires("boost", {
+  system = false,
+  configs = {
+    python = false,
+    fiber = false,
+    coroutine = false,
+    regex = false,
+    graph = false,
+    serialization = false,
+    random = false,
+    wave = false,
+    date_time = false,
+    locale = false,
+    iostreams = false,
+    program_options = false,
+    test = false,
+    chrono = false,
+    contract = false,
+    graph_parallel = false,
+    json = false,
+    log = false,
+    thread = false,
+    filesystem = false,
+    math = false,
+    mpi = false,
+    nowide = false,
+    stacktrace = false,
+    cmake = false,
+    asio = true,
+    beast = true,
+    header_only = true,
+  },
+})
+
 package("stack_alloc")
 do
   set_license("MIT")
@@ -70,7 +104,7 @@ do
   add_headerfiles("include/(**)", {public = true})
   add_cxxflags("-std=c++2c", {public = true})
   add_packages("fmt", {public = true})
-  add_packages("boost", {public = true, links = {"boost_atomic-mt", "boost_filesystem-mt"}})
+  add_packages("boost", {public = true})
   add_packages("bzip2", {public = true, links = {"bz2"}})
   add_files("src/*.cpp")
   add_defines("NIELIB_FULL", {public = true})
