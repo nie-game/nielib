@@ -8,6 +8,9 @@
 #include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 #ifdef NIELIB_FULL
 namespace nie::log {
@@ -69,7 +72,8 @@ namespace nie {
         *(volatile char*)(0) = 0;
         return nullptr;
       } else
-        return &((new (reinterpret_cast<char*>(nie::log::nie_log_buffer_output) + offset) log_frame_t(size + sizeof(log_frame_t), time))->data[0]);
+        return &((new (reinterpret_cast<char*>(nie::log::nie_log_buffer_output) + offset) log_frame_t(size + sizeof(log_frame_t), time))
+                ->data[0]);
     }
 #endif
     return nullptr;
