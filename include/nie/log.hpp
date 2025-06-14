@@ -14,6 +14,7 @@
 #include <nie.hpp>
 #include <print>
 #include <source_location>
+#include <span>
 #include <sstream>
 
 namespace nie {

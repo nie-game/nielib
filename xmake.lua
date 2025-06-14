@@ -5,6 +5,7 @@ add_requires("boost", {
   configs = {
     python = false,
     fiber = false,
+    process = true,
     coroutine = false,
     regex = false,
     graph = false,
@@ -30,7 +31,7 @@ add_requires("boost", {
     cmake = false,
     asio = true,
     beast = true,
-    header_only = true,
+    header_only = false,
   },
 })
 
@@ -150,7 +151,7 @@ do
   set_default(false)
   set_kind("object")
   add_packages("stack_alloc")
-  add_packages("boost", {public = true, links = {"boost_atomic-mt", "boost_filesystem-mt"}})
+  add_packages("boost", {public = true})
   add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
   add_includedirs("include/", {public = true})
   -- add_cxxflags("-std=c++2c", {public = true})

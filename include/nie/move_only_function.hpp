@@ -362,37 +362,37 @@ namespace nie {
       return !f;
     }
 
-    inline R operator()(Args... args) noexcept(noex)
+    [[clang::coro_wrapper]] inline R operator()(Args... args) noexcept(noex)
       requires(!is_const and !is_lvalue_only and !is_rvalue_only)
     {
       return vtbl_.get().call(obj_.val, std::forward<Args>(args)...);
     }
 
-    inline R operator()(Args... args) const noexcept(noex)
+    [[clang::coro_wrapper]] inline R operator()(Args... args) const noexcept(noex)
       requires(is_const and !is_lvalue_only and !is_rvalue_only)
     {
       return vtbl_.get().call(obj_.val, std::forward<Args>(args)...);
     }
 
-    inline R operator()(Args... args) & noexcept(noex)
+    [[clang::coro_wrapper]] inline R operator()(Args... args) & noexcept(noex)
       requires(!is_const and is_lvalue_only and !is_rvalue_only)
     {
       return vtbl_.get().call(obj_.val, std::forward<Args>(args)...);
     }
 
-    inline R operator()(Args... args) const& noexcept(noex)
+    [[clang::coro_wrapper]] inline R operator()(Args... args) const& noexcept(noex)
       requires(is_const and is_lvalue_only and !is_rvalue_only)
     {
       return vtbl_.get().call(obj_.val, std::forward<Args>(args)...);
     }
 
-    inline R operator()(Args... args) && noexcept(noex)
+    [[clang::coro_wrapper]] inline R operator()(Args... args) && noexcept(noex)
       requires(!is_const and !is_lvalue_only and is_rvalue_only)
     {
       return vtbl_.get().call(obj_.val, std::forward<Args>(args)...);
     }
 
-    inline R operator()(Args... args) const&& noexcept(noex)
+    [[clang::coro_wrapper]] inline R operator()(Args... args) const&& noexcept(noex)
       requires(is_const and !is_lvalue_only and is_rvalue_only)
     {
       return vtbl_.get().call(obj_.val, std::forward<Args>(args)...);
