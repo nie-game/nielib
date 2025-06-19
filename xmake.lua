@@ -121,13 +121,16 @@ do
     add_shflags("-fstack-protector-all", "-mshstk", "-fsanitize=safe-stack", {public = true})
   end
 
+  set_strip("none", {public = true})
+  set_symbols("debug", {public = true})
+
   if is_mode("debug") then
-    set_symbols("debug", {public = true})
     add_cxflags("-fdata-sections", "-ffunction-sections", {public = true})
     add_ldflags("-Wl,--gc-sections", {public = true})
     add_cxflags("-march=native", {public = true})
     add_ldflags("-march=native", {public = true})
     set_optimize("faster", {public = true})
+    add_defines("_DEBUG", {public = true})
   else
     add_cxflags("-fdata-sections", "-ffunction-sections", {public = true})
     add_ldflags("-Wl,--gc-sections", {public = true})
@@ -135,6 +138,7 @@ do
     add_ldflags("-march=native", {public = true})
     set_optimize("fastest", {public = true})
     add_defines("BOOST_DISABLE_CURRENT_LOCATION", {public = true})
+    add_defines("NDEBUG", {public = true})
   end
   add_cxflags("-fno-rtti", {public = true})
   add_defines("BOOST_ASIO_NO_EXCEPTIONS", {public = true})
