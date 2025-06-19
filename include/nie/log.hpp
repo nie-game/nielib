@@ -414,7 +414,7 @@ namespace nie {
           *(bl.ptr++) = 0;
       }
 #ifdef NDEBUG
-      if constexpr ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal))
+      // if constexpr ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal))
 #endif
       {
         std::stringstream ss;
