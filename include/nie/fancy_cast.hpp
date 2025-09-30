@@ -26,28 +26,6 @@ namespace nie {
 
   struct is_fancy;
 
-  template <typename T, typename Enabler = void> struct fancy_db;
-  template <> struct fancy_db<uint64_t> {
-    static constexpr auto name = string_literal("uint64_t");
-    static constexpr fancy_interface* interface = nullptr;
-  };
-  template <> struct fancy_db<uint32_t> {
-    static constexpr auto name = string_literal("uint32_t");
-    static constexpr fancy_interface* interface = nullptr;
-  };
-  template <> struct fancy_db<int64_t> {
-    static constexpr auto name = string_literal("int64_t");
-    static constexpr fancy_interface* interface = nullptr;
-  };
-  template <> struct fancy_db<int32_t> {
-    static constexpr auto name = string_literal("int32_t");
-    static constexpr fancy_interface* interface = nullptr;
-  };
-  template <typename T> struct fancy_db<T, typename T::fancy_cookie> {
-    static constexpr auto name = T::name;
-    static constexpr fancy_interface* interface = T::fancy_name();
-  };
-
   template <typename T>
   concept fancy_class = std::is_base_of_v<is_fancy, T> && requires {
     { T::fancy_name() } -> std::convertible_to<fancy_interface*>;
@@ -182,7 +160,7 @@ namespace nie {
     using fancy_parent = fancy<T, name_t, Parents...>;
 
     using fancy_cookie = void;
-    static constexpr auto name = name_t;
+    static constexpr auto fancy_name_value = name_t;
 
     template <typename... Args> fancy(Args&&... args) : fancy_inherit<Parents...>(std::forward<Args>(args)...) {
       for (size_t j = 0; j < fancy_cast_slot_count(); j++)
