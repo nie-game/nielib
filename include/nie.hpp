@@ -1,6 +1,8 @@
 #ifndef NIE_HPP
 #define NIE_HPP
 
+#define __cpp_lib_expected 202211L
+
 #include "nie/log.hpp"
 #include "nie/require.hpp"
 #include "source_location.hpp"
@@ -81,14 +83,14 @@ namespace nie {
 #endif
         typename = enable_if_t<std::is_member_pointer<decay_t<Fn>>::value>,
         int = 0>
-    constexpr auto invoke(Fn&& f, Args&&... args) noexcept(
-        noexcept(std::mem_fn(f)(std::forward<Args>(args)...))) -> decltype(std::mem_fn(f)(std::forward<Args>(args)...)) {
+    constexpr auto invoke(Fn&& f, Args&&... args) noexcept(noexcept(std::mem_fn(f)(std::forward<Args>(args)...)))
+        -> decltype(std::mem_fn(f)(std::forward<Args>(args)...)) {
       return std::mem_fn(f)(std::forward<Args>(args)...);
     }
 
     template <typename Fn, typename... Args, typename = enable_if_t<!std::is_member_pointer<decay_t<Fn>>::value>>
-    constexpr auto invoke(Fn&& f, Args&&... args) noexcept(
-        noexcept(std::forward<Fn>(f)(std::forward<Args>(args)...))) -> decltype(std::forward<Fn>(f)(std::forward<Args>(args)...)) {
+    constexpr auto invoke(Fn&& f, Args&&... args) noexcept(noexcept(std::forward<Fn>(f)(std::forward<Args>(args)...)))
+        -> decltype(std::forward<Fn>(f)(std::forward<Args>(args)...)) {
       return std::forward<Fn>(f)(std::forward<Args>(args)...);
     }
 

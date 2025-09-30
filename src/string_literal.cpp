@@ -29,7 +29,7 @@ namespace nie {
   struct cache_ptr_t {
     std::shared_mutex cache_mutex;
     std::forward_list<dynamic_string_data> dyn_cache_;
-    std::unordered_map<std::string_view, string_data const*> cache_{{"", nullptr}};
+    std::unordered_map<std::string_view, string_data const*> cache_{{""sv, nullptr}};
   }; // namespace
 
   inline cache_ptr_t& cache_ptr() {

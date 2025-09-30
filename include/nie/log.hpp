@@ -14,6 +14,7 @@
 #include <nie.hpp>
 #include <print>
 #include <source_location>
+#include <span>
 #include <sstream>
 
 namespace nie {
@@ -322,6 +323,7 @@ namespace nie {
     case fatal:
       return "fatl"sv;
     }
+    assert(false);
   }
   template <level_e level, string_literal message, string_literal... Args> struct log_message {
     inline static bool is_disabled = !nie::register_startup([] { add_log_disabler(message(), &is_disabled); });
