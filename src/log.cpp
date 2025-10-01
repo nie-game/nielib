@@ -7,11 +7,13 @@
 #include <mutex>
 #include <nie/log.hpp>
 #include <shared_mutex>
-#include <sys/mman.h>
 #include <unordered_map>
 #include <unordered_set>
 #if defined(_WIN32)
 #include <windows.h>
+#else
+#include <sys/mman.h>
+#include <unistd.h>
 #endif
 
 #ifdef NIELIB_FULL
