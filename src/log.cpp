@@ -1,4 +1,5 @@
 #include <atomic>
+#include <fcntl.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -6,6 +7,7 @@
 #include <mutex>
 #include <nie/log.hpp>
 #include <shared_mutex>
+#include <sys/mman.h>
 #include <unordered_map>
 #include <unordered_set>
 #if defined(_WIN32)
@@ -46,11 +48,12 @@ namespace nie {
   }
 
   struct log_frame_t {
-    volatile uint64_t size;
     volatile uint64_t time;
+    volatile uint32_t size;
+    volatile uint32_t index;
     char data[];
-    inline log_frame_t(size_t size, std::chrono::tai_clock::time_point time)
-        : size(size), time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()) {}
+    inline log_frame_t(size_t size, uint32_t index, std::chrono::tai_clock::time_point time)
+        : size(size), index(index), time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()) {}
     log_frame_t() = delete;
     log_frame_t(const log_frame_t&) = delete;
     log_frame_t(log_frame_t&&) = delete;
@@ -59,7 +62,7 @@ namespace nie {
   };
   static_assert(sizeof(log_frame_t) == 16);
 
-  char* log_frame(size_t size, std::chrono::tai_clock::time_point time) {
+  char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time) {
 #ifdef NIELIB_FULL
     assert(size % 8 == 0);
     // std::cout << "SIZE " << size << std::endl;
@@ -72,7 +75,8 @@ namespace nie {
         *(volatile char*)(0) = 0;
         return nullptr;
       } else
-        return &((new (reinterpret_cast<char*>(nie::log::nie_log_buffer_output) + offset) log_frame_t(size + sizeof(log_frame_t), time))
+        return &(
+            (new (reinterpret_cast<char*>(nie::log::nie_log_buffer_output) + offset) log_frame_t(size + sizeof(log_frame_t), index, time))
                 ->data[0]);
     }
 #endif
@@ -91,6 +95,7 @@ namespace nie {
     std::ifstream file("nolog.txt");
     std::string line;
     while (std::getline(file, line)) {
+      std::println("DISABLE {} {}", line, disablers.contains(line));
       if (disablers.contains(line)) {
         for (const auto d : disablers.at(line))
           *d = true;
@@ -102,9 +107,11 @@ namespace nie {
     size_t found_pos = 0;
     size_t cur = 0;
     while ((cur = v.find('.', found_pos)) != std::string_view::npos) {
+      std::println("DISABLER {}", std::string(v.substr(0, cur)));
       disablers[std::string(v.substr(0, cur))].emplace_back(ptr);
       found_pos = cur + 1;
     }
+    std::println("DISABLER {}", std::string(v));
     disablers[std::string(v)].emplace_back(ptr);
     disablers["*"].emplace_back(ptr);
   }
@@ -169,5 +176,23 @@ namespace nie {
       return map.at(l);
     map.emplace(l, idx);
     return idx;
+  }
+  void init_log() {
+#if defined(_WIN32)
+#else
+    assert(!nie::log::nie_log_buffer_output);
+    int fd = open((executable_name() + std::string(".nielog")).data(), O_RDWR | O_CLOEXEC | O_CREAT | O_TRUNC, 0666);
+    if (fd == -1) {
+      perror("Log File Open");
+      abort();
+    }
+    if (ftruncate(fd, 2147483648ULL)) {
+      perror("Log File Truncate");
+      abort();
+    }
+    auto ptr = mmap(nullptr, 2147483648ULL, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    nie::log::nie_log_buffer_output = new (ptr) nie::log::nie_log_buffer_t;
+    nie::log::nie_log_buffer_output->signature = 724313520984115534ULL;
+#endif
   }
 } // namespace nie

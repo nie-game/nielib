@@ -60,6 +60,41 @@ namespace nie {
   };
   template <string_literal... a> inline constexpr auto dotted = dotted_t<a...>::value;
 
+  template <size_t v> struct to_string_t {
+    static constexpr auto value = string_literal_cat<to_string_t<v / 10ULL>::value, to_string_t<v % 10ULL>::value>;
+  };
+  template <> struct to_string_t<0> {
+    static constexpr string_literal<2> value = {{'0', 0}};
+  };
+  template <> struct to_string_t<1> {
+    static constexpr string_literal<2> value = {{'1', 0}};
+  };
+  template <> struct to_string_t<2> {
+    static constexpr string_literal<2> value = {{'2', 0}};
+  };
+  template <> struct to_string_t<3> {
+    static constexpr string_literal<2> value = {{'3', 0}};
+  };
+  template <> struct to_string_t<4> {
+    static constexpr string_literal<2> value = {{'4', 0}};
+  };
+  template <> struct to_string_t<5> {
+    static constexpr string_literal<2> value = {{'5', 0}};
+  };
+  template <> struct to_string_t<6> {
+    static constexpr string_literal<2> value = {{'6', 0}};
+  };
+  template <> struct to_string_t<7> {
+    static constexpr string_literal<2> value = {{'7', 0}};
+  };
+  template <> struct to_string_t<8> {
+    static constexpr string_literal<2> value = {{'8', 0}};
+  };
+  template <> struct to_string_t<9> {
+    static constexpr string_literal<2> value = {{'9', 0}};
+  };
+  template <size_t v> constexpr auto to_string = to_string_t<v>::value;
+
   struct string_data {
     [[gnu::const]] virtual std::string_view text() const = 0;
   };

@@ -127,8 +127,6 @@ do
   if is_mode("debug") then
     add_cxflags("-fdata-sections", "-ffunction-sections", {public = true})
     add_ldflags("-Wl,--gc-sections", {public = true})
-    add_cxflags("-march=native", {public = true})
-    add_ldflags("-march=native", {public = true})
     set_optimize("faster", {public = true})
     add_defines("_DEBUG", {public = true})
   else
@@ -166,8 +164,6 @@ do
     set_symbols("debug", {public = true})
     add_cxflags("-fdata-sections", "-ffunction-sections", {public = true})
     add_ldflags("-Wl,--gc-sections", {public = true})
-    add_cxflags("-march=native", {public = true})
-    add_ldflags("-march=native", {public = true})
     set_optimize("faster", {public = true})
   else
     add_cxflags("-fdata-sections", "-ffunction-sections", {public = true})

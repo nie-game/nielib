@@ -28,7 +28,8 @@ namespace nie {
   };
 
   template <nie::string_literal a, typename T> struct log_info<log_param<a, T>, typename base<T>::well> {
-    static constexpr encoding_type type = encoding_type::capnp;
+    static constexpr auto name = "capnp"_lit;
+    static constexpr size_t size = 65536;
     using B = typename base<T>::type;
     using R = typename B::Reader;
 
