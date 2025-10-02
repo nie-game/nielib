@@ -353,6 +353,7 @@ namespace nie {
     case internal:
       return "intl"sv;
     }
+    assert(false);
   }
   template <string_literal message> struct log_message {
     static constexpr bool cookie = true;
