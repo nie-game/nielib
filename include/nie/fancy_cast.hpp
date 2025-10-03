@@ -161,6 +161,7 @@ namespace nie {
 
     using fancy_cookie = void;
     static constexpr auto fancy_name_value = name_t;
+    using fancy_type_type = T;
 
     template <typename... Args> fancy(Args&&... args) : fancy_inherit<Parents...>(std::forward<Args>(args)...) {
       for (size_t j = 0; j < fancy_cast_slot_count(); j++)
