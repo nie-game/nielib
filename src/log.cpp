@@ -97,7 +97,6 @@ namespace nie {
     std::ifstream file("nolog.txt");
     std::string line;
     while (std::getline(file, line)) {
-      std::println("DISABLE {} {}", line, disablers.contains(line));
       if (disablers.contains(line)) {
         for (const auto d : disablers.at(line))
           *d = true;
@@ -109,11 +108,9 @@ namespace nie {
     size_t found_pos = 0;
     size_t cur = 0;
     while ((cur = v.find('.', found_pos)) != std::string_view::npos) {
-      std::println("DISABLER {}", std::string(v.substr(0, cur)));
       disablers[std::string(v.substr(0, cur))].emplace_back(ptr);
       found_pos = cur + 1;
     }
-    std::println("DISABLER {}", std::string(v));
     disablers[std::string(v)].emplace_back(ptr);
     disablers["*"].emplace_back(ptr);
   }
