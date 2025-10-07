@@ -11,6 +11,8 @@
 
 namespace nie {
   using namespace std::literals;
+  void (*fatal_function)(
+      std::string_view expletive, nie::source_location location) = [](std::string_view, nie::source_location) { *(volatile char*)(0) = 0; };
   [[noreturn]] void fatal(nie::source_location location) {
     fatal("Error"sv, location);
   }
@@ -99,11 +101,8 @@ namespace nie {
 #else
     std::cerr << "FATAL ERROR " << expletive << " at " << location.file_name() << ":" << location.line() << std::endl;
 #endif
-#if defined(_WIN32)
-    *(volatile char*)(0) = 1;
-#else
+    fatal_function(expletive, location);
     abort();
-#endif
   }
 
   nyi::nyi(std::string text, nie::source_location location)
