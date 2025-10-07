@@ -100,7 +100,7 @@ namespace nie {
     std::cerr << "FATAL ERROR " << expletive << " at " << location.file_name() << ":" << location.line() << std::endl;
 #endif
 #if defined(_WIN32)
-    *(volatile char*)(0) = 0;
+    *(volatile char*)(0) = 1;
 #else
     abort();
 #endif
