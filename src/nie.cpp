@@ -99,7 +99,11 @@ namespace nie {
 #else
     std::cerr << "FATAL ERROR " << expletive << " at " << location.file_name() << ":" << location.line() << std::endl;
 #endif
+#if defined(_WIN32)
+    *(virtual char*)(0) = 0;
+#else
     abort();
+#endif
   }
 
   nyi::nyi(std::string text, nie::source_location location)
