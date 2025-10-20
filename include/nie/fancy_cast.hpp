@@ -154,6 +154,16 @@ namespace nie {
     }
   };
   extern fancy_interface* filter_fancy_interface(std::string_view, fancy_interface*);
+  template <typename T> struct get_fancy_interface {
+    [[gnu::const]] static fancy_interface* fancy_name() {
+      return T::fancy_name();
+    }
+  };
+  template <> struct get_fancy_interface<void> {
+    [[gnu::const]] static fancy_interface* fancy_name() {
+      return nullptr;
+    }
+  };
   template <typename T, string_literal name_t, fancy_class... Parents> struct fancy : fancy_inherit<Parents...> {
     template <fancy_class... FParents> friend struct fancy_inherit;
     template <typename FT, string_literal Fname_t, fancy_class... FParents> friend struct fancy;
@@ -164,8 +174,11 @@ namespace nie {
     using fancy_type_type = T;
 
     template <typename... Args> fancy(Args&&... args) : fancy_inherit<Parents...>(std::forward<Args>(args)...) {
-      for (size_t j = 0; j < fancy_cast_slot_count(); j++)
+      for (size_t j = 0; j < fancy_cast_slot_count(); j++) {
         nie::require(fancy_cast_name_slots_instance[j]);
+        if (j)
+          nie::require(fancy_cast_name_slots_instance[j] != fancy_name());
+      }
     }
     struct my_fancy_interface final : fancy_interface {
       [[gnu::const]] std::string_view name() const override {

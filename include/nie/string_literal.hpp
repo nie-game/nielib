@@ -60,6 +60,20 @@ namespace nie {
   };
   template <string_literal... a> inline constexpr auto dotted = dotted_t<a...>::value;
 
+  template <string_literal... a> struct commad_t {
+    inline static constexpr string_literal<1> value = {{0}};
+  };
+  template <string_literal a> struct commad_t<a> {
+    inline static constexpr auto value = a;
+  };
+  template <string_literal a, string_literal b> struct commad_t<a, b> {
+    inline static constexpr auto value = string_literal_cat<a, ", ", b>;
+  };
+  template <string_literal a, string_literal... b> struct commad_t<a, b...> {
+    inline static constexpr auto value = string_literal_cat<a, ", ", commad_t<b...>::value>;
+  };
+  template <string_literal... a> inline constexpr auto commad = commad_t<a...>::value;
+
   template <size_t v> struct to_string_t {
     static constexpr auto value = string_literal_cat<to_string_t<v / 10ULL>::value, to_string_t<v % 10ULL>::value>;
   };
