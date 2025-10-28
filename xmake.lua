@@ -138,7 +138,11 @@ do
     add_defines("BOOST_DISABLE_CURRENT_LOCATION", {public = true})
     add_defines("NDEBUG", {public = true})
   end
-  add_cxflags("-fno-rtti", {public = true})
+  if is_plat("linux") then
+    add_cxflags("-fno-rtti", {public = true})
+  else
+    add_cxflags("/GR-", {public = true})
+  end
   add_defines("BOOST_ASIO_NO_EXCEPTIONS", {public = true})
 end
 target_end()
