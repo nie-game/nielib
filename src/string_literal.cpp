@@ -32,7 +32,7 @@ namespace nie {
     std::unordered_map<std::string_view, string_data const*> cache_{{""sv, nullptr}};
   }; // namespace
 
-  inline cache_ptr_t& cache_ptr() {
+  [[gnu::visibility("default")]] inline cache_ptr_t& cache_ptr() {
     static cache_ptr_t x;
     return x;
   }
@@ -62,7 +62,7 @@ namespace nie {
     std::unique_lock lock(cache_ptr().cache_mutex);
     if (cache_ptr().cache_.contains(d->text())) {
 #ifdef NIELIB_FULL
-      log.error<"register">("duplicate"_log = d->text());
+      log.error<"register">("duplicate"_log = d->text(), "me"_log = size_t(d), "orig"_log = size_t(cache_ptr().cache_.at(d->text())));
 #endif
     }
     nie::require(!cache_ptr().cache_.contains(d->text()));

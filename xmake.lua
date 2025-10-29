@@ -89,6 +89,7 @@ package_end()
 target("nielib")
 do
   set_default(true)
+  add_cxflags("-fPIC")
   add_packages("stack_alloc")
   add_packages("system_error2")
   add_packages("nontype_functional")

@@ -7,7 +7,7 @@
 
 namespace nie {
   struct string;
-  template <size_t N> struct string_literal {
+  template <size_t N> struct [[clang::type_visibility("default"), gnu::visibility("hidden")]] string_literal {
     constexpr string_literal(const char (&str)[N]) {
       std::copy_n(str, N, value);
     }
@@ -145,14 +145,14 @@ namespace nie {
 
   template <nie::string_literal T> struct string_init {
     struct my_string_data final : string_data {
-      my_string_data() {
+      inline my_string_data() {
         register_literal(this);
       }
       [[gnu::const]] std::string_view text() const override {
         return T();
       }
     };
-    inline static const my_string_data data_ = {};
+    [[gnu::visibility("default")]] inline static const my_string_data data_ = {};
     [[gnu::const]] inline string operator()() {
       return string(&data_);
     }
