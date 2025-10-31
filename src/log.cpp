@@ -16,7 +16,6 @@
 #include <unistd.h>
 #endif
 
-#ifdef NIELIB_FULL
 namespace nie::log {
   struct nie_log_buffer_t {
     volatile uint64_t signature;
@@ -26,7 +25,6 @@ namespace nie::log {
   static_assert(sizeof(nie_log_buffer_t) == 16);
   nie_log_buffer_t* nie_log_buffer_output = nullptr;
 } // namespace nie::log
-#endif
 
 namespace nie {
   std::string executable_name() {
@@ -65,7 +63,6 @@ namespace nie {
   static_assert(sizeof(log_frame_t) == 16);
 
   char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time) {
-#ifdef NIELIB_FULL
     assert(size % 8 == 0);
     // std::cout << "SIZE " << size << std::endl;
     assert(size < 65536);
@@ -81,7 +78,6 @@ namespace nie {
             (new (reinterpret_cast<char*>(nie::log::nie_log_buffer_output) + offset) log_frame_t(size + sizeof(log_frame_t), index, time))
                 ->data[0]);
     }
-#endif
     return nullptr;
   }
 

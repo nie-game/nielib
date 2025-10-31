@@ -1,5 +1,3 @@
--- add_requires("stack_alloc", "system_error2", "nontype_functional", "concurrentqueue", "short_alloc", "skia-ref_ptr",
---  "expected")
 add_requires("boost", {
   system = false,
   configs = {
@@ -34,62 +32,27 @@ add_requires("boost", {
     header_only = false,
   },
 })
+function tribute(name, license, url)
+  package(name)
+  set_license(license)
+  set_description(url)
+  on_install(function()
+  end)
+  package_end()
+  add_requires(name)
+end
+tribute("nontype_functional", "BSD-2-Clause", "https://github.com/zhihaoy/nontype_functional")
+tribute("concurrentqueue", "BSD-2-Clause", "https://github.com/cameron314/concurrentqueue")
+tribute("stack_alloc", "MIT", "https://raw.githubusercontent.com/charles-salvia/charles/master/stack_allocator.hpp")
+tribute("system_error2", "Apache2", "https://github.com/ned14/status-code")
+tribute("short_alloc", "MIT", "https://howardhinnant.github.io/stack_alloc.html")
+tribute("expected", "CC0", "http://tl.tartanllama.xyz/")
 
-package("stack_alloc")
-do
-  set_license("MIT")
-  set_description("https://raw.githubusercontent.com/charles-salvia/charles/master/stack_allocator.hpp")
-end
-package_end()
-package("system_error2")
-do
-  set_license("Apache2")
-  set_description("https://github.com/ned14/status-code")
-end
-package_end()
-package("nontype_functional")
-do
-  set_license("BSD-2-Clause")
-  set_description("https://github.com/zhihaoy/nontype_functional")
-end
-package_end()
-package("concurrentqueue")
-do
-  set_license("BSD-2-Clause")
-  set_description("https://github.com/cameron314/concurrentqueue")
-end
-package_end()
-package("short_alloc")
-do
-  set_license("MIT")
-  set_description("https://howardhinnant.github.io/stack_alloc.html")
-end
-package_end()
-package("skia-ref_ptr")
-do
-  set_license("BSD-3-Clause")
-  set_description("https://github.com/google/skia")
-end
-package_end()
-package("expected")
-do
-  set_license("CC0")
-  set_description("http://tl.tartanllama.xyz/")
-end
-package_end()
-package("rangesnext")
-do
-  set_license("BSL")
-  set_description("https://github.com/cor3ntin/rangesnext/blob/master/include/cor3ntin/rangesnext/enumerate.hpp")
-end
-package_end()
--- add_requires("libxcb", {system = false, configs = {shared = false}})
--- add_requires("libxdmcp", {system = false, configs = {shared = false}})
--- add_requires("libxau", {system = false, configs = {shared = false}})
+-- set_prefixname("")
+
 target("nielib")
 do
-  set_default(true)
-  add_cxflags("-fPIC")
+  set_kind("object")
   add_packages("stack_alloc")
   add_packages("system_error2")
   add_packages("nontype_functional")
@@ -97,99 +60,106 @@ do
   add_packages("short_alloc")
   add_packages("skia-ref_ptr")
   add_packages("expected")
-  -- add_packages("libxdmpc", {public = true, links = {"xcb", "Xau", "Xdmcp"}})
-  -- add_packages("libxau", {public = true, links = {"xcb", "Xau", "Xdmcp"}})
-  -- add_packages("libxcb", {public = true, links = {"xcb", "Xau", "Xdmcp"}})
-  add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
-  set_kind("object")
-  add_includedirs("include/", {public = true})
-  add_headerfiles("include/(**)", {public = true})
-  add_cxxflags("-std=c++2c", {public = true})
   add_packages("fmt", {public = true})
   add_packages("boost", {public = true})
   add_packages("bzip2", {public = true, links = {"bz2"}})
   add_files("src/*.cpp")
+  add_includedirs("include/", {public = true})
+  add_headerfiles("include/(**)", {public = true})
   add_defines("NIELIB_FULL", {public = true})
   add_cxflags("-fasynchronous-unwind-tables", {public = true})
   add_ldflags("-fasynchronous-unwind-tables", {public = true})
 
-  if false and is_mode("debug") then
-    -- set_policy("build.sanitizer.address", true, {public = true})
-    -- set_policy("build.sanitizer.undefined", true, {public = true})
-    -- set_policy("build.sanitizer.memory", true, {public = true})
-    add_cxxflags("-fstack-protector-all", "-mshstk", "-fsanitize=safe-stack", {public = true})
-    add_ldflags("-fstack-protector-all", "-mshstk", "-fsanitize=safe-stack", {public = true})
-    add_shflags("-fstack-protector-all", "-mshstk", "-fsanitize=safe-stack", {public = true})
+  add_defines("ASIO_HAS_CO_AWAIT=1", "BOOST_ASIO_HAS_CO_AWAIT=1", {public = true, force = true})
+  add_defines("ASIO_HAS_STD_COROUTINE=1", "BOOST_ASIO_HAS_STD_COROUTINE=1", {public = true, force = true})
+  add_defines("ASIO_HAS_STD_SYSTEM_ERROR=1", "BOOST_ASIO_HAS_STD_SYSTEM_ERROR=1", {public = true, force = true})
+  add_defines("ASIO_RECYCLING_ALLOCATOR_CACHE_SIZE=128", "BOOST_ASIO_RECYCLING_ALLOCATOR_CACHE_SIZE=128",
+    {public = true, force = true})
+  add_defines("ASIO_DISABLE_SERIAL_PORT", "BOOST_ASIO_DISABLE_SERIAL_PORT", {public = true, force = true})
+  add_defines("_ASIO_NO_EXCEPTIONS", "BOOST_ASIO_NO_EXCEPTIONS", {public = true, force = true})
+  add_defines("GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true, force = true})
+  add_defines("JSON_HAS_RANGES=1", {public = true, force = true}) -- https://reviews.llvm.org/D149276
+  add_defines("BOOST_DISABLE_CURRENT_LOCATION", {public = true, force = true})
+  add_defines("JSON_USE_IMPLICIT_CONVERSIONS=0", {public = true, force = true})
+  add_defines("KJ_STD_COMPAT", {public = true, force = true})
+  add_defines("CXXOPTS_NO_RTTI", {public = true, force = true})
+  add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE",
+    {public = true, force = true})
+
+  add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
+  add_ldflags("-Wl,--gc-sections", {public = true, force = true})
+  add_cxflags("-march=native", {public = true, force = true})
+  add_ldflags("-march=native", {public = true, force = true})
+
+  if is_os("linux") then
+    add_ldflags("-fuse-ld=lld", {public = true, force = true})
+    add_shflags("-fuse-ld=lld", {public = true, force = true})
+    add_cxflags("-Wall", {public = true, force = true})
+    add_cxxflags("-Werror=inconsistent-missing-override", {public = true, force = true})
+    add_cxflags("-fuse-ld=lld", "-Werror=move", "-Werror=unused-result", "-Werror=return-type", "-Werror=switch",
+      "-Werror=delete-non-virtual-dtor", "-Werror=return-type", "-Werror=switch",
+      "-Werror=call-to-pure-virtual-from-ctor-dtor", "-Werror=defaulted-function-deleted",
+      "-Werror=delete-non-virtual-dtor", "-Werror=abstract-final-class", "-ftemplate-backtrace-limit=0",
+      "-Werror=ignored-attributes", "-Werror=unused-value", "-Werror=uninitialized",
+      "-Werror=tautological-constant-out-of-range-compare", {public = true, force = true})
+    add_defines("BOOST_ASIO_HAS_IO_URING=1", "ASIO_HAS_IO_URING=1", {public = true, force = true})
+    add_cxflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
+    add_shflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
+    add_ldflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
+    add_ldflags("-Wl,-z,stack-size=524288", {public = true, force = true})
+    add_ldflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
+    add_shflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
+    add_cxflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
+    if is_mode("debug") then
+      --[[add_cxflags("-fstack-protector-all", "-mshstk", {public = true, force = true})
+      add_ldflags("-fstack-protector-all", "-mshstk", {public = true, force = true})
+      add_shflags("-fstack-protector-all", "-mshstk", {public = true, force = true})
+      add_cxflags( "-fsanitize=safe-stack", {public = true, force = true})
+      add_ldflags("-fsanitize=safe-stack", {public = true, force = true})
+      add_shflags("-fsanitize=safe-stack", {public = true, force = true})]]
+    else
+    end
+    add_cxflags("-fno-rtti", {public = true})
+  elseif is_os("windows") then
+    set_runtimes("MT")
+    add_cxflags("/GR-", {public = true})
   end
 
-  set_strip("none", {public = true})
-  set_symbols("debug", {public = true})
-
   if is_mode("debug") then
-    add_cxflags("-fdata-sections", "-ffunction-sections", {public = true})
-    add_ldflags("-Wl,--gc-sections", {public = true})
-    set_optimize("faster", {public = true})
     add_defines("_DEBUG", {public = true})
   else
-    add_cxflags("-fdata-sections", "-ffunction-sections", {public = true})
-    add_ldflags("-Wl,--gc-sections", {public = true})
-    add_cxflags("-march=native", {public = true})
-    add_ldflags("-march=native", {public = true})
-    set_optimize("fastest", {public = true})
     add_defines("BOOST_DISABLE_CURRENT_LOCATION", {public = true})
     add_defines("NDEBUG", {public = true})
   end
-  if is_plat("linux") then
-    add_cxflags("-fno-rtti", {public = true})
-  else
-    add_cxflags("/GR-", {public = true})
-  end
-  add_defines("BOOST_ASIO_NO_EXCEPTIONS", {public = true})
-end
-target_end()
-target("nielib_dist")
-do
-  set_kind("static")
-  add_deps("nielib", {public = true})
-  set_default(true)
-end
-target("nielib_slim")
-do
-  set_default(false)
-  set_kind("object")
-  add_packages("stack_alloc")
-  add_packages("boost", {public = true})
-  add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
-  add_includedirs("include/", {public = true})
-  -- add_cxxflags("-std=c++2c", {public = true})
-  add_files("src/*.cpp")
-  set_languages("c++latest")
-
-  if is_mode("debug") then
-    set_symbols("debug", {public = true})
-    add_cxflags("-fdata-sections", "-ffunction-sections", {public = true})
-    add_ldflags("-Wl,--gc-sections", {public = true})
-    set_optimize("faster", {public = true})
-  else
-    add_cxflags("-fdata-sections", "-ffunction-sections", {public = true})
-    add_ldflags("-Wl,--gc-sections", {public = true})
-    add_cxflags("-march=native", {public = true})
-    add_ldflags("-march=native", {public = true})
-    set_optimize("fastest", {public = true})
-    add_defines("BOOST_DISABLE_CURRENT_LOCATION", {public = true})
-  end
-  add_cxflags("-fno-rtti", {public = true})
-end
-target_end()
-target("nielib_slimmer")
-do
-  set_default(false)
-  add_packages("stack_alloc")
-  set_kind("headeronly")
-  add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true})
-  add_includedirs("include/", {public = true})
-  add_cxxflags("-std=c++2c", {public = true})
-  -- add_files("src/nie.cpp")
-  add_cxflags("-fno-rtti", {public = true})
+  after_link("linux", function(target)
+    local dfile = target:targetfile() .. "_dist"
+    os.cp(target:targetfile(), dfile)
+    os.execv("strip", {"-sxX", dfile})
+    os.exec("objcopy --localize-hidden --discard-all --discard-locals --strip-all --strip-unneeded \"%s\"", dfile)
+    os.execv("strip", {"-sxX", dfile})
+  end, {public = true})
+  before_link(function(target)
+    local paths = table.unique(table.join(target:get_from("linkdirs", "*"), {"/usr/lib/x86_64-linux-gnu/"}))
+    target:linker():_tool().nf_link = function(self, lib)
+      local has_file = false
+      if (lib ~= "dl") and (lib ~= "pthread") and (lib ~= "m") and (lib ~= "c") then
+        for _, p in ipairs(paths) do
+          has_file = has_file or os.exists(path.join(p, "lib" .. lib .. ".a"))
+        end
+      end
+      if has_file and not lib:find("^:") then
+        return "-l:lib" .. lib .. ".a"
+      else
+        if lib == "util" then
+          print(paths)
+          print(os.exists(path.join("/usr/lib/x86_64-linux-gnu/", "lib" .. lib .. ".a")))
+          raise"NO!!!!"
+        end
+        return "-l" .. lib
+      end
+    end
+    target:linker():_tool().nf_syslink = target:linker():_tool().nf_link
+    target:linkflags()
+  end, {public = true})
 end
 target_end()

@@ -372,10 +372,8 @@ template <> struct std::formatter<nie::fancy_interface*> {
     auto it = ctx.begin();
     if (it == ctx.end())
       return it;
-#ifdef NIELIB_FULL
     if (*it != '}')
       throw std::format_error("Invalid format args for nie::fancy_interface*.");
-#endif
     return it;
   }
 

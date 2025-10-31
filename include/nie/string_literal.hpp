@@ -153,7 +153,7 @@ namespace nie {
       }
     };
     [[gnu::visibility("default")]] inline static const my_string_data data_ = {};
-    [[gnu::const]] inline string operator()() {
+    inline string operator()() {
       return string(&data_);
     }
   };
@@ -179,10 +179,8 @@ template <> struct std::formatter<nie::string, char> {
     auto it = ctx.begin();
     if (it == ctx.end())
       return it;
-#ifdef NIELIB_FULL
     if (*it != '}')
       throw std::format_error("Invalid format args for nie::string.");
-#endif
     return it;
   }
   template <class FmtContext> FmtContext::iterator format(const nie::string& a, FmtContext& ctx) const {

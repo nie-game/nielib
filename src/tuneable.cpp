@@ -1,9 +1,7 @@
-#ifdef NIELIB_FULL
 #include <charconv>
 #include <functional>
 #include <iostream>
 #include <nie.hpp>
-#include <nie/move_only_function.hpp>
 #include <nie/tuneable.hpp>
 #include <unordered_map>
 
@@ -98,4 +96,3 @@ namespace nie {
     }
   } // namespace tuneable_control
 } // namespace nie
-#endif
