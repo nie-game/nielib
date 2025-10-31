@@ -11,6 +11,8 @@
 
 namespace nie {
   using namespace std::literals;
+  void (*fatal_function)(
+      std::string_view expletive, nie::source_location location) = [](std::string_view, nie::source_location) { *(volatile char*)(0) = 0; };
   [[noreturn]] void fatal(nie::source_location location) {
     fatal("Error"sv, location);
   }
@@ -99,21 +101,14 @@ namespace nie {
 #else
     std::cerr << "FATAL ERROR " << expletive << " at " << location.file_name() << ":" << location.line() << std::endl;
 #endif
+    fatal_function(expletive, location);
     abort();
   }
 
-  nyi::nyi(std::string text, nie::source_location location)
-#ifdef NIELIB_FULL
-      : message(std::format("NYI at {}: {}", location, text)) {
+  nyi::nyi(std::string text, nie::source_location location) : message(std::format("NYI at {}: {}", location, text)) {
     nie::logger<"nie">{}.warn<"nyi">("text"_log = text, "location"_log = location);
     static logger<"nyi"> nyi_logger = {};
     nyi_logger.warn<"NYI at {}: {}">("location"_log = location, "message"_log = text);
   }
-#else
-      : message(std::string("NYI at ") + std::string(location.file_name()) + std::string(":") + std::to_string(location.line()) +
-                std::string(": ") + text) {
-    std::cout << message.data() << std::endl;
-  }
-#endif
 
 } // namespace nie

@@ -16,7 +16,7 @@ namespace nie {
   template <typename T, typename v = void> struct base;
   template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Reader>>> {
     using type = typename T::Reader::Reads;
-    using well = void;
+    // using well = void;
   };
   template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Reads>>> {
     using type = typename T::Reads;
@@ -24,13 +24,14 @@ namespace nie {
   };
   template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Builds>>> {
     using type = typename T::Builds;
-    using well = void;
+    // using well = void;
   };
 
   template <nie::string_literal a, typename T> struct log_info<log_param<a, T>, typename base<T>::well> {
-    static constexpr encoding_type type = encoding_type::capnp;
+    static constexpr auto name = "capnp"_lit;
+    static constexpr size_t size = 65536;
     using B = typename base<T>::type;
-    using R = typename B::Reader;
+    using R = capnp::ReaderFor<B>;
 
     inline static std::string dynamicPrintValue(capnp::DynamicValue::Reader value) {
       // Print an arbitrary message via the dynamic API by

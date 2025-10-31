@@ -1,4 +1,5 @@
 #include <atomic>
+#include <fcntl.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -10,9 +11,11 @@
 #include <unordered_set>
 #if defined(_WIN32)
 #include <windows.h>
+#else
+#include <sys/mman.h>
+#include <unistd.h>
 #endif
 
-#ifdef NIELIB_FULL
 namespace nie::log {
   struct nie_log_buffer_t {
     volatile uint64_t signature;
@@ -22,7 +25,6 @@ namespace nie::log {
   static_assert(sizeof(nie_log_buffer_t) == 16);
   nie_log_buffer_t* nie_log_buffer_output = nullptr;
 } // namespace nie::log
-#endif
 
 namespace nie {
   std::string executable_name() {
@@ -46,11 +48,12 @@ namespace nie {
   }
 
   struct log_frame_t {
-    volatile uint64_t size;
     volatile uint64_t time;
+    volatile uint32_t size;
+    volatile uint32_t index;
     char data[];
-    inline log_frame_t(size_t size, std::chrono::tai_clock::time_point time)
-        : size(size), time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()) {}
+    inline log_frame_t(size_t size, uint32_t index, std::chrono::tai_clock::time_point time)
+        : size(size), index(index), time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()) {}
     log_frame_t() = delete;
     log_frame_t(const log_frame_t&) = delete;
     log_frame_t(log_frame_t&&) = delete;
@@ -59,8 +62,7 @@ namespace nie {
   };
   static_assert(sizeof(log_frame_t) == 16);
 
-  char* log_frame(size_t size, std::chrono::tai_clock::time_point time) {
-#ifdef NIELIB_FULL
+  char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time) {
     assert(size % 8 == 0);
     // std::cout << "SIZE " << size << std::endl;
     assert(size < 65536);
@@ -72,10 +74,10 @@ namespace nie {
         *(volatile char*)(0) = 0;
         return nullptr;
       } else
-        return &((new (reinterpret_cast<char*>(nie::log::nie_log_buffer_output) + offset) log_frame_t(size + sizeof(log_frame_t), time))
+        return &(
+            (new (reinterpret_cast<char*>(nie::log::nie_log_buffer_output) + offset) log_frame_t(size + sizeof(log_frame_t), index, time))
                 ->data[0]);
     }
-#endif
     return nullptr;
   }
 
@@ -169,5 +171,23 @@ namespace nie {
       return map.at(l);
     map.emplace(l, idx);
     return idx;
+  }
+  void init_log() {
+#if defined(_WIN32)
+#else
+    assert(!nie::log::nie_log_buffer_output);
+    int fd = open((executable_name() + std::string(".nielog")).data(), O_RDWR | O_CLOEXEC | O_CREAT | O_TRUNC, 0666);
+    if (fd == -1) {
+      perror("Log File Open");
+      abort();
+    }
+    if (ftruncate(fd, 2147483648ULL)) {
+      perror("Log File Truncate");
+      abort();
+    }
+    auto ptr = mmap(nullptr, 2147483648ULL, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    nie::log::nie_log_buffer_output = new (ptr) nie::log::nie_log_buffer_t;
+    nie::log::nie_log_buffer_output->signature = 724313520984115534ULL;
+#endif
   }
 } // namespace nie

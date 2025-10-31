@@ -22,13 +22,7 @@ namespace nie {
   };
 
   template <typename T> struct tuneable {
-    tuneable(std::string_view name, std::string_view description, T default_value)
-#ifdef NIELIB_FULL
-        ;
-#else
-        : value_(default_value) {
-    }
-#endif
+    tuneable(std::string_view name, std::string_view description, T default_value);
     inline operator T() const {
       return value_;
     }

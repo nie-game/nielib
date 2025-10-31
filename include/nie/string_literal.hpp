@@ -7,7 +7,7 @@
 
 namespace nie {
   struct string;
-  template <size_t N> struct string_literal {
+  template <size_t N> struct [[clang::type_visibility("default"), gnu::visibility("hidden")]] string_literal {
     constexpr string_literal(const char (&str)[N]) {
       std::copy_n(str, N, value);
     }
@@ -60,6 +60,55 @@ namespace nie {
   };
   template <string_literal... a> inline constexpr auto dotted = dotted_t<a...>::value;
 
+  template <string_literal... a> struct commad_t {
+    inline static constexpr string_literal<1> value = {{0}};
+  };
+  template <string_literal a> struct commad_t<a> {
+    inline static constexpr auto value = a;
+  };
+  template <string_literal a, string_literal b> struct commad_t<a, b> {
+    inline static constexpr auto value = string_literal_cat<a, ", ", b>;
+  };
+  template <string_literal a, string_literal... b> struct commad_t<a, b...> {
+    inline static constexpr auto value = string_literal_cat<a, ", ", commad_t<b...>::value>;
+  };
+  template <string_literal... a> inline constexpr auto commad = commad_t<a...>::value;
+
+  template <size_t v> struct to_string_t {
+    static constexpr auto value = string_literal_cat<to_string_t<v / 10ULL>::value, to_string_t<v % 10ULL>::value>;
+  };
+  template <> struct to_string_t<0> {
+    static constexpr string_literal<2> value = {{'0', 0}};
+  };
+  template <> struct to_string_t<1> {
+    static constexpr string_literal<2> value = {{'1', 0}};
+  };
+  template <> struct to_string_t<2> {
+    static constexpr string_literal<2> value = {{'2', 0}};
+  };
+  template <> struct to_string_t<3> {
+    static constexpr string_literal<2> value = {{'3', 0}};
+  };
+  template <> struct to_string_t<4> {
+    static constexpr string_literal<2> value = {{'4', 0}};
+  };
+  template <> struct to_string_t<5> {
+    static constexpr string_literal<2> value = {{'5', 0}};
+  };
+  template <> struct to_string_t<6> {
+    static constexpr string_literal<2> value = {{'6', 0}};
+  };
+  template <> struct to_string_t<7> {
+    static constexpr string_literal<2> value = {{'7', 0}};
+  };
+  template <> struct to_string_t<8> {
+    static constexpr string_literal<2> value = {{'8', 0}};
+  };
+  template <> struct to_string_t<9> {
+    static constexpr string_literal<2> value = {{'9', 0}};
+  };
+  template <size_t v> constexpr auto to_string = to_string_t<v>::value;
+
   struct string_data {
     [[gnu::const]] virtual std::string_view text() const = 0;
   };
@@ -96,15 +145,15 @@ namespace nie {
 
   template <nie::string_literal T> struct string_init {
     struct my_string_data final : string_data {
-      my_string_data() {
+      inline my_string_data() {
         register_literal(this);
       }
       [[gnu::const]] std::string_view text() const override {
         return T();
       }
     };
-    inline static const my_string_data data_ = {};
-    [[gnu::const]] inline string operator()() {
+    [[gnu::visibility("default")]] inline static const my_string_data data_ = {};
+    inline string operator()() {
       return string(&data_);
     }
   };
@@ -130,10 +179,8 @@ template <> struct std::formatter<nie::string, char> {
     auto it = ctx.begin();
     if (it == ctx.end())
       return it;
-#ifdef NIELIB_FULL
     if (*it != '}')
       throw std::format_error("Invalid format args for nie::string.");
-#endif
     return it;
   }
   template <class FmtContext> FmtContext::iterator format(const nie::string& a, FmtContext& ctx) const {
