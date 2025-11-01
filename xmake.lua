@@ -31,7 +31,6 @@ add_requires("boost", {
     beast = true,
     system = true,
     header_only = false,
-    vs_runtime = "MT",
   },
 })
 function tribute(name, license, url)
