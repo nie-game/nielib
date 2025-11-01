@@ -139,7 +139,7 @@ do
     os.exec("objcopy --localize-hidden --discard-all --discard-locals --strip-all --strip-unneeded \"%s\"", dfile)
     os.execv("strip", {"-sxX", dfile})
   end, {public = true})
-  before_link(function(target)
+  before_link("linux", function(target)
     local paths = table.unique(table.join(target:get_from("linkdirs", "*"), {"/usr/lib/x86_64-linux-gnu/"}))
     target:linker():_tool().nf_link = function(self, lib)
       local has_file = false

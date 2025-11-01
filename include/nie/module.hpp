@@ -5,6 +5,7 @@
 #define NIE_MODULE_MINOR_VERSION 0
 
 #include "../nie.hpp"
+#include <forward_list>
 
 namespace nie {
   enum module_load_error { success = 0, invalid_provided_size };
@@ -20,16 +21,37 @@ namespace nie {
     virtual std::span<std::string_view> depends_any() noexcept = 0;
     virtual nie::errorable<service*> instantiate() noexcept = 0;
   };
+  struct base_dependency {
+    void* data;
+    std::string_view name;
+  };
+
+  /* Keep the following lines to preserve binary compatibility */
   struct module_ctx {
-    uint64_t module_version;
-    void (*fatal)(const char*) noexcept;
-    void (*error)(const char*) noexcept;
-    uint64_t minor_version;
+    uint64_t module_version = NIE_MODULE_REFERENCE_VERSION;
+    virtual void fatal(const char*) noexcept = 0;
+    virtual void error(const char*) noexcept = 0;
+    /* Until here. After that you can change if you life, just make sure to do stuff right or change module_version */
+    uint64_t minor_version = NIE_MODULE_MINOR_VERSION;
     std::span<service_description*> services;
   };
-  static_assert(offsetof(module_ctx, module_version) == 0);
-  static_assert(offsetof(module_ctx, fatal) == 8);
-  static_assert(offsetof(module_ctx, error) == 16);
+  static_assert(offsetof(module_ctx, module_version) == 8);
+
+  inline std::vector<base_dependency*> global_dependencies() {
+    static std::vector<base_dependency*> instance;
+    return instance;
+  }
+  template <typename T> struct dependency : base_dependency {
+    inline dependency() {
+      name = T::name;
+      global_dependencies().push_back(this);
+    }
+    inline T& operator*() {
+      auto p = data;
+      nie::require(p);
+      return *static_cast<T*>(p);
+    }
+  };
 } // namespace nie
 
 #endif // NIE_MODULE_HPP

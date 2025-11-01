@@ -53,6 +53,13 @@ namespace nie {
   }
 
   template <typename T> using errorable = std::expected<T, std::error_code>;
+  static constexpr int to_fatal(std::error_code ec) {
+    nie::fatal(ec.message());
+    return 42;
+  }
+  static constexpr int to_exception(std::error_code ec) {
+    throw std::system_error(ec);
+  }
 
 #ifdef NIE_DEBUG
 #define NIE_UNREACHABLE nie::fatal("Unreachable reached")
