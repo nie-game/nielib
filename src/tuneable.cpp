@@ -82,8 +82,12 @@ namespace nie {
     tuneable_list().emplace(name, std::make_unique<abstract_tuneable>(abstract_tuneable{name, description, std::move(p)}));
   }
   template <>
-  tuneable<std::string>::tuneable(std::string_view name, std::string_view description, std::string default_value) : value_(default_value) {
-    auto p = [this](std::string_view text) -> std::string { this->value_ = std::string(text); };
+  tuneable<std::string_view>::tuneable(std::string_view name, std::string_view description, std::string_view default_value)
+      : value_(default_value) {
+    auto p = [this](std::string_view text) -> std::string {
+      auto s = new std::string(text);
+      this->value_ = *s;
+    };
     tuneable_list().emplace(name, std::make_unique<abstract_tuneable>(abstract_tuneable{name, description, std::move(p)}));
   }
   namespace tuneable_control {
