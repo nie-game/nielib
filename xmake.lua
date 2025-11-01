@@ -125,6 +125,8 @@ do
   elseif is_os("windows") then
     set_runtimes("MT")
     add_cxflags("/GR-", {public = true})
+    add_ldflags("/opt:ref", {public = true, force = true})
+    add_shflags("/opt:ref", {public = true, force = true})
   end
 
   if is_mode("debug") then
