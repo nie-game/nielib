@@ -143,7 +143,7 @@ namespace nie {
     string_data const* data_ = nullptr;
   };
 
-  [[gnu::visibility("default")]] void register_literal(string_data const*);
+  NIE_EXPORT void register_literal(string_data const*);
 
   template <nie::string_literal T> struct string_init {
     struct my_string_data final : string_data {
@@ -154,7 +154,7 @@ namespace nie {
         return T();
       }
     };
-    [[gnu::visibility("default")]] inline static const my_string_data data_ = {};
+    inline static const my_string_data data_ = {};
     inline string operator()() {
       return string(&data_);
     }
