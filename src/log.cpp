@@ -62,7 +62,7 @@ namespace nie {
   };
   static_assert(sizeof(log_frame_t) == 16);
 
-  char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time) {
+  NIE_EXPORT char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time) {
     assert(size % 8 == 0);
     // std::cout << "SIZE " << size << std::endl;
     assert(size < 65536);
@@ -81,7 +81,7 @@ namespace nie {
     return nullptr;
   }
 
-  void write_log_file(std::string_view m) {
+  NIE_EXPORT void write_log_file(std::string_view m) {
     static std::mutex mtx;
     static std::ofstream file(executable_name() + std::string(".txt"), std::ofstream::out | std::ofstream::trunc);
     std::unique_lock lock(mtx);
@@ -89,7 +89,7 @@ namespace nie {
   }
 
   std::map<std::string, std::vector<bool*>> disablers;
-  void read_log_disabler() {
+  NIE_EXPORT void read_log_disabler() {
     std::ifstream file("nolog.txt");
     std::string line;
     while (std::getline(file, line)) {
@@ -100,7 +100,7 @@ namespace nie {
     }
   }
 
-  void add_log_disabler(std::string_view v, bool* ptr) {
+  NIE_EXPORT void add_log_disabler(std::string_view v, bool* ptr) {
     size_t found_pos = 0;
     size_t cur = 0;
     while ((cur = v.find('.', found_pos)) != std::string_view::npos) {
@@ -125,19 +125,6 @@ namespace nie {
              (a.column() == b.column());
     }
   };
-  void register_capnp(uint64_t s, const nie::function_ref<void()>& cb) {
-    static std::shared_mutex mtx;
-    static std::unordered_set<uint64_t> set = {0xE682AB4CF923A417ULL};
-    {
-      std::shared_lock lock(mtx);
-      if (set.contains(s))
-        return;
-    }
-    cb();
-    std::unique_lock lock(mtx);
-    set.insert(s);
-    return;
-  }
   void register_nie_string(nie::string s) {
     static std::shared_mutex mtx;
     static std::unordered_set<nie::string> set;
@@ -153,7 +140,7 @@ namespace nie {
     set.insert(s);
     return;
   }
-  uint32_t lookup_source_location(std::source_location l) {
+  NIE_EXPORT uint32_t lookup_source_location(std::source_location l) {
     static std::atomic<uint32_t> ctr = 0;
     static std::shared_mutex mtx;
     static std::unordered_map<std::source_location, uint32_t, l_hash, l_equal> map;
@@ -172,7 +159,7 @@ namespace nie {
     map.emplace(l, idx);
     return idx;
   }
-  void init_log() {
+  NIE_EXPORT void init_log() {
 #if defined(_WIN32)
 #else
     assert(!nie::log::nie_log_buffer_output);

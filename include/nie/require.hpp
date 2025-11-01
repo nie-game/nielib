@@ -5,8 +5,8 @@
 #include <string_view>
 
 namespace nie {
-  [[noreturn]] void fatal(nie::source_location location = nie::source_location::current());
-  [[noreturn]] void fatal(std::string_view expletive, nie::source_location location = nie::source_location::current());
+  [[noreturn]] NIE_EXPORT void fatal(nie::source_location location = nie::source_location::current());
+  [[noreturn]] NIE_EXPORT void fatal(std::string_view expletive, nie::source_location location = nie::source_location::current());
 
   inline void require(bool is_good,
       std::string_view message = std::string_view("Assertion Failed"),

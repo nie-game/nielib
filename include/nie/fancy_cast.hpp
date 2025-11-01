@@ -18,7 +18,7 @@
 #include <string_view>
 
 namespace nie {
-  [[noreturn]] void fatal(std::string_view expletive, nie::source_location location);
+  [[noreturn]] NIE_EXPORT void fatal(std::string_view expletive, nie::source_location location);
 
   struct fancy_interface {
     virtual ~fancy_interface() noexcept = default;

@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <format>
+#include <set>
+#include <shared_mutex>
 #include <string_view>
 
 namespace nie {
@@ -115,7 +117,7 @@ namespace nie {
   struct string {
     template <nie::string_literal T> friend struct string_init;
     friend struct std::hash<string>;
-    explicit string(std::string_view);
+    NIE_EXPORT explicit string(std::string_view);
     string() = default;
     string(const string&) = default;
     string(string&&) = default;

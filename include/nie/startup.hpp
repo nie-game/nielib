@@ -1,10 +1,25 @@
 #ifndef NIE_STARTUP_HPP
 #define NIE_STARTUP_HPP
 
+#include <forward_list>
 #include <functional>
 
 namespace nie {
-  [[gnu::visibility("default")]] bool register_startup(std::function<void()>);
+  inline std::forward_list<std::function<void()>>& startup_funcs() {
+    static std::forward_list<std::function<void()>> v{};
+    return v;
+  }
+  inline bool register_startup(std::function<void()> f) {
+    startup_funcs().emplace_front(std::move(f));
+    return true;
+  }
+  inline void run_startup() {
+    auto funcs = std::move(startup_funcs());
+    for (auto& f : funcs)
+      f();
+  }
+
+  bool register_startup(std::function<void()>);
   void run_startup();
 } // namespace nie
 

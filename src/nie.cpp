@@ -11,12 +11,12 @@
 
 namespace nie {
   using namespace std::literals;
-  void (*fatal_function)(
+  NIE_EXPORT void (*fatal_function)(
       std::string_view expletive, nie::source_location location) = [](std::string_view, nie::source_location) { *(volatile char*)(0) = 0; };
-  [[noreturn]] void fatal(nie::source_location location) {
+  [[noreturn]] NIE_EXPORT void fatal(nie::source_location location) {
     fatal("Error"sv, location);
   }
-  [[noreturn]] void fatal(std::string_view expletive, nie::source_location location) {
+  [[noreturn]] NIE_EXPORT void fatal(std::string_view expletive, nie::source_location location) {
     nie::logger<"nie">{}.error<"fatal">("expletive"_log = expletive, "location"_log = location);
 #ifdef NIELIB_FULL_X11
     std::cerr << std::format("FATAL ERROR: {} at {}", expletive, location) << std::endl;

@@ -49,10 +49,10 @@ namespace spinemarrow {
   using node_handle = std::shared_ptr<node_handle_data>;
 } // namespace spinemarrow
 namespace nie {
-  char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time);
-  void write_log_file(std::string_view);
-  void add_log_disabler(std::string_view, bool*);
-  void init_log();
+  NIE_EXPORT char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time);
+  NIE_EXPORT void write_log_file(std::string_view);
+  NIE_EXPORT void add_log_disabler(std::string_view, bool*);
+  NIE_EXPORT void init_log();
 
   struct log_cookie {
     void* ptr = nullptr;
@@ -146,8 +146,7 @@ namespace nie {
       ss << std::format("'{}'", v.value);
     }
   };
-  void register_nie_string(nie::string);
-  void register_capnp(uint64_t, const nie::function_ref<void()>&);
+  NIE_EXPORT void register_nie_string(nie::string);
   template <nie::string_literal a> struct log_info<log_param<a, nie::string>> {
     static constexpr auto name = "cached_string"_lit;
     static constexpr size_t size = 8;
@@ -281,13 +280,13 @@ namespace nie {
       ss << std::format("{:#x}", size_t(typename T::NativeType(v.value)));
     }
   };
-  uint32_t lookup_source_location(std::source_location);
+  NIE_EXPORT uint32_t lookup_source_location(std::source_location);
   template <nie::string_literal a> struct log_info<log_param<a, std::source_location>> {
     static constexpr auto name = "source_location"_lit;
-    static constexpr size_t size = 4;
+    static constexpr size_t size = 8;
 
     inline static void write(auto& logger, const log_param<a, std::source_location>& v) {
-      logger.template write_int<uint32_t>(lookup_source_location(v.value));
+      logger.template write_int<uint64_t>(lookup_source_location(v.value));
     }
     inline static void format(std::stringstream& ss, const log_param<a, std::source_location>& v) {
       ss << std::format("{}", v.value);
@@ -498,11 +497,14 @@ namespace nie {
           (!log_message_disable<msg_data>::is_disabled))
 #endif
         if constexpr (level != level_e::internal) {
-          if (frame)
+          if (frame) {
+#ifndef NDEBUG
             if (!log_message_disable<msg_data>::init_cookie) {
               std::println("Init Cookie Error");
               abort();
             }
+#endif
+          }
           std::stringstream ss;
           bool first = true;
           auto m = [&]<typename T>(const T& arg) {

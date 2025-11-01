@@ -48,11 +48,9 @@ tribute("system_error2", "Apache2", "https://github.com/ned14/status-code")
 tribute("short_alloc", "MIT", "https://howardhinnant.github.io/stack_alloc.html")
 tribute("expected", "CC0", "http://tl.tartanllama.xyz/")
 
--- set_prefixname("")
-
 target("nielib")
 do
-  set_kind("object")
+  set_kind("shared")
   add_packages("stack_alloc")
   add_packages("system_error2")
   add_packages("nontype_functional")
@@ -85,6 +83,9 @@ do
   add_defines("CXXOPTS_NO_RTTI", {public = true, force = true})
   add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE",
     {public = true, force = true})
+
+  add_defines("NIE_EXPORT=[[gnu::visibility(\"default\"), gnu::dllimport]]", {interface = true})
+  add_defines("NIE_EXPORT=[[gnu::visibility(\"default\"), gnu::dllexport]]", {public = false})
 
   add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
   add_ldflags("-Wl,--gc-sections", {public = true, force = true})
