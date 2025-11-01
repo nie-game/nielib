@@ -3,7 +3,7 @@ add_requires("boost", {
   configs = {
     python = false,
     fiber = false,
-    process = true,
+    process = false,
     coroutine = false,
     regex = false,
     graph = false,
@@ -26,10 +26,10 @@ add_requires("boost", {
     mpi = false,
     nowide = false,
     stacktrace = false,
-    cmake = false,
+    cmake = true,
     asio = true,
     beast = true,
-    header_only = false,
+    header_only = true,
   },
 })
 function tribute(name, license, url)
