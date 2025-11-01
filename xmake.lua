@@ -20,7 +20,7 @@ add_requires("boost", {
     graph_parallel = false,
     json = false,
     log = false,
-    thread = false,
+    thread = true,
     filesystem = false,
     math = false,
     mpi = false,
@@ -29,7 +29,8 @@ add_requires("boost", {
     cmake = true,
     asio = true,
     beast = true,
-    header_only = true,
+    system = true,
+    header_only = false,
   },
 })
 function tribute(name, license, url)
