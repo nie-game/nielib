@@ -84,7 +84,7 @@ namespace nie {
   template <>
   tuneable<std::string_view>::tuneable(std::string_view name, std::string_view description, std::string_view default_value)
       : value_(default_value) {
-    auto p = [this](std::string_view text) -> std::string {
+    auto p = [this](std::string_view text) {
       auto s = new std::string(text);
       this->value_ = *s;
     };

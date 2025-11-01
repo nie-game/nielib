@@ -93,17 +93,17 @@ do
   add_cxflags("-march=native", {public = true, force = true})
   add_ldflags("-march=native", {public = true, force = true})
 
+  add_cxxflags("-Werror=inconsistent-missing-override", {public = true, force = true})
+  add_cxflags("-fuse-ld=lld", "-Werror=move", "-Werror=unused-result", "-Werror=return-type", "-Werror=switch",
+    "-Werror=delete-non-virtual-dtor", "-Werror=return-type", "-Werror=switch",
+    "-Werror=call-to-pure-virtual-from-ctor-dtor", "-Werror=defaulted-function-deleted",
+    "-Werror=delete-non-virtual-dtor", "-Werror=abstract-final-class", "-ftemplate-backtrace-limit=0",
+    "-Werror=ignored-attributes", "-Werror=unused-value", "-Werror=uninitialized",
+    "-Werror=tautological-constant-out-of-range-compare", {public = true, force = true})
   if is_os("linux") then
     add_ldflags("-fuse-ld=lld", {public = true, force = true})
     add_shflags("-fuse-ld=lld", {public = true, force = true})
     add_cxflags("-Wall", {public = true, force = true})
-    add_cxxflags("-Werror=inconsistent-missing-override", {public = true, force = true})
-    add_cxflags("-fuse-ld=lld", "-Werror=move", "-Werror=unused-result", "-Werror=return-type", "-Werror=switch",
-      "-Werror=delete-non-virtual-dtor", "-Werror=return-type", "-Werror=switch",
-      "-Werror=call-to-pure-virtual-from-ctor-dtor", "-Werror=defaulted-function-deleted",
-      "-Werror=delete-non-virtual-dtor", "-Werror=abstract-final-class", "-ftemplate-backtrace-limit=0",
-      "-Werror=ignored-attributes", "-Werror=unused-value", "-Werror=uninitialized",
-      "-Werror=tautological-constant-out-of-range-compare", {public = true, force = true})
     add_defines("BOOST_ASIO_HAS_IO_URING=1", "ASIO_HAS_IO_URING=1", {public = true, force = true})
     add_cxflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
     add_shflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
