@@ -16,16 +16,6 @@
 #include <unistd.h>
 #endif
 
-namespace nie::log {
-  struct nie_log_buffer_t {
-    volatile uint64_t signature;
-    std::atomic<uint64_t> content_length = 16;
-  };
-  static_assert(sizeof(std::atomic<uint64_t>) == 8);
-  static_assert(sizeof(nie_log_buffer_t) == 16);
-  nie_log_buffer_t* nie_log_buffer_output = nullptr;
-} // namespace nie::log
-
 namespace nie {
   std::string executable_name() {
 #if defined(PLATFORM_POSIX) || defined(__linux__) // check defines for your setup
@@ -47,38 +37,83 @@ namespace nie {
 #endif
   }
 
+  struct log_buffer {
+    log_buffer* next = nullptr;
+    std::atomic<uint64_t> pos = 0;
+    std::array<char, frame_size> data;
+  };
+  std::atomic<log_buffer*> current_buffer = nullptr;
+  log_buffer* first_buffer = nullptr;
+#ifdef _WIN32
+  using breakpad_cookie = log_message<"1:windows::">;
+#else
+  using breakpad_cookie = log_message<"1:linux::">;
+#endif
+
   struct log_frame_t {
     volatile uint64_t time;
-    volatile uint32_t size;
-    volatile uint32_t index;
+    volatile uint64_t size;
+    volatile uint64_t type;
     char data[];
-    inline log_frame_t(size_t size, uint32_t index, std::chrono::tai_clock::time_point time)
-        : size(size), index(index), time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()) {}
+    inline log_frame_t(size_t size, uint64_t type, std::chrono::tai_clock::time_point time)
+        : size(size), type(type), time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()) {}
     log_frame_t() = delete;
     log_frame_t(const log_frame_t&) = delete;
     log_frame_t(log_frame_t&&) = delete;
     log_frame_t& operator=(const log_frame_t&) = delete;
     log_frame_t& operator=(log_frame_t&&) = delete;
   };
-  static_assert(sizeof(log_frame_t) == 16);
+  static_assert(sizeof(log_frame_t) == 24);
+  struct header_data {
+    uint64_t signature = 724313520984115534ULL;
+    uint64_t format_version = 2;
+    char frame[sizeof(log_frame_t)];
+    uint64_t breakpad_cookie = std::bit_cast<size_t>(&nie::breakpad_cookie::cookie);
+    header_data() {
+      new (&frame[0]) log_frame_t(sizeof(header_data) - offsetof(header_data, frame) - sizeof(log_frame_t), 0, {});
+    }
+  };
 
-  NIE_EXPORT char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time) {
+  NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time) {
     assert(size % 8 == 0);
     // std::cout << "SIZE " << size << std::endl;
-    assert(size < 65536);
-    if (nie::log::nie_log_buffer_output) {
-      auto offset = nie::log::nie_log_buffer_output->content_length.fetch_add(size + sizeof(log_frame_t));
-      assert(offset % 8 == 0);
-      if ((offset + size) >= 2147483648ULL) {
-        std::cout << "Log Buffer Full" << std::endl;
-        *(volatile char*)(0) = 0;
-        return nullptr;
-      } else
-        return &(
-            (new (reinterpret_cast<char*>(nie::log::nie_log_buffer_output) + offset) log_frame_t(size + sizeof(log_frame_t), index, time))
-                ->data[0]);
+    while (true) {
+      auto buf = current_buffer.load();
+      if (buf) {
+        auto npos = buf->pos.fetch_add(size + sizeof(log_frame_t));
+        if ((npos + size + sizeof(log_frame_t)) < frame_size) {
+          return &((new (&buf->data.at(npos)) log_frame_t(size, type, time))->data[0]);
+        }
+      }
+      auto new_buffer = new log_buffer;
+      auto old_buffer = current_buffer.exchange(new_buffer);
+      if (old_buffer)
+        old_buffer->next = new_buffer;
+      else
+        first_buffer = new_buffer;
     }
     return nullptr;
+  }
+  log_buffer* crashdump_buffer = new log_buffer;
+  std::span<char> crashdump_data() {
+    nie::require(crashdump_buffer);
+    return std::span<char>{crashdump_buffer->data}.subspan(sizeof(log_frame_t));
+  }
+  void set_crashdump_data(size_t size) {
+    new (crashdump_buffer->data.data()) log_frame_t(size, std::bit_cast<size_t>(&breakpad_cookie::cookie), {});
+    crashdump_buffer->pos = size + sizeof(log_frame_t);
+  }
+  void iterate_frames(const nie::function_ref<void(std::span<const char>)>& cb) {
+    header_data hd;
+    cb({reinterpret_cast<const char*>(&hd), sizeof(header_data)});
+    auto buf = first_buffer;
+    while (buf) {
+      if (buf->pos)
+        cb(std::span<const char>{buf->data}.subspan(0, buf->pos));
+      buf = buf->next;
+    }
+    if (crashdump_buffer->pos)
+      cb(std::span<const char>{crashdump_buffer->data}.subspan(0, crashdump_buffer->pos));
   }
 
   NIE_EXPORT void write_log_file(std::string_view m) {
@@ -88,13 +123,16 @@ namespace nie {
     file << m << std::endl;
   }
 
-  std::map<std::string, std::vector<bool*>> disablers;
+  std::map<std::string, std::vector<bool*>>& disablers() {
+    static std::map<std::string, std::vector<bool*>> inst;
+    return inst;
+  }
   NIE_EXPORT void read_log_disabler() {
     std::ifstream file("nolog.txt");
     std::string line;
     while (std::getline(file, line)) {
-      if (disablers.contains(line)) {
-        for (const auto d : disablers.at(line))
+      if (disablers().contains(line)) {
+        for (const auto d : disablers().at(line))
           *d = true;
       }
     }
@@ -104,11 +142,11 @@ namespace nie {
     size_t found_pos = 0;
     size_t cur = 0;
     while ((cur = v.find('.', found_pos)) != std::string_view::npos) {
-      disablers[std::string(v.substr(0, cur))].emplace_back(ptr);
+      disablers()[std::string(v.substr(0, cur))].emplace_back(ptr);
       found_pos = cur + 1;
     }
-    disablers[std::string(v)].emplace_back(ptr);
-    disablers["*"].emplace_back(ptr);
+    disablers()[std::string(v)].emplace_back(ptr);
+    disablers()["*"].emplace_back(ptr);
   }
   struct l_hash {
     std::hash<const char*> function_hash;
@@ -160,21 +198,27 @@ namespace nie {
     return idx;
   }
   NIE_EXPORT void init_log() {
-#if defined(_WIN32)
-#else
-    assert(!nie::log::nie_log_buffer_output);
-    int fd = open((executable_name() + std::string(".nielog")).data(), O_RDWR | O_CLOEXEC | O_CREAT | O_TRUNC, 0666);
-    if (fd == -1) {
-      perror("Log File Open");
-      abort();
+#if 0
+    void* ptr = nullptr;
+    bool debug_log = false;
+#ifndef _WIN32
+    if (debug_log) {
+      assert(!nie::log::nie_log_buffer_output);
+      int fd = open((executable_name() + std::string(".nielog")).data(), O_RDWR | O_CLOEXEC | O_CREAT | O_TRUNC, 0666);
+      if (fd == -1) {
+        perror("Log File Open");
+        abort();
+      }
+      if (ftruncate(fd, arena_size)) {
+        perror("Log File Truncate");
+        abort();
+      }
+      ptr = mmap(nullptr, arena_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    } else
+#endif
+    {
+      ptr = malloc(arena_size);
     }
-    if (ftruncate(fd, 2147483648ULL)) {
-      perror("Log File Truncate");
-      abort();
-    }
-    auto ptr = mmap(nullptr, 2147483648ULL, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    nie::log::nie_log_buffer_output = new (ptr) nie::log::nie_log_buffer_t;
-    nie::log::nie_log_buffer_output->signature = 724313520984115534ULL;
 #endif
   }
 } // namespace nie

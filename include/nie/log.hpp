@@ -17,12 +17,6 @@
 #include <span>
 #include <sstream>
 
-#ifndef _WIN32
-extern "C" {
-extern char __executable_start[];
-}
-#endif
-
 namespace nie {
   template <nie::string_literal a, typename T> struct log_param {
     inline log_param(const T& value) : value(value) {}
@@ -49,10 +43,14 @@ namespace spinemarrow {
   using node_handle = std::shared_ptr<node_handle_data>;
 } // namespace spinemarrow
 namespace nie {
-  NIE_EXPORT char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time);
+  NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time);
   NIE_EXPORT void write_log_file(std::string_view);
   NIE_EXPORT void add_log_disabler(std::string_view, bool*);
   NIE_EXPORT void init_log();
+  NIE_EXPORT std::span<char> crashdump_data();
+  NIE_EXPORT void set_crashdump_data(uint64_t);
+  NIE_EXPORT void iterate_frames(const nie::function_ref<void(std::span<const char>)>&);
+  constexpr size_t frame_size = 1024 * 1024 * 16;
 
   struct log_cookie {
     void* ptr = nullptr;
@@ -356,7 +354,6 @@ namespace nie {
   }
   template <string_literal message> struct log_message {
     static constexpr bool cookie = true;
-    inline static bool has_info = false;
   };
   template <string_literal message> struct log_message_disable {
     inline static bool is_disabled = false;
@@ -400,32 +397,14 @@ namespace nie {
           log_name<Args>::type...,
           "::">;
       using msg = log_message<text>;
-#ifndef _WIN32
-      assert(reinterpret_cast<const char*>(&msg::cookie) >= __executable_start);
-      size_t pos = reinterpret_cast<const char*>(&msg::cookie) - __executable_start;
-#else
-      uint32_t pos = size_t(reinterpret_cast<const char*>(&msg::cookie));
-#endif
-      assert(pos <= size_t(uint32_t(-1)));
-      uint32_t index = pos;
-      if (!msg::has_info) {
-        auto d = text();
-        auto n = d.size();
-        n &= ~7ULL;
-        n += 8ULL;
-        auto frame = log_frame(n, index, {});
-        if (frame) {
-          memcpy(frame, d.data(), d.size());
-          msg::has_info = true;
-        }
-      }
+      auto type = std::bit_cast<std::size_t>(&msg::cookie);
       auto n = [&](auto& logger) {
         auto m = [&]<typename T>(const T& arg) { log_info<T>::write(logger, arg); };
         (m(args), ...);
       };
       constexpr size_t est_len = (((log_info<Args>::size + ... + 0) + 7ULL) & ~7ULL);
       size_t len = est_len;
-      /*if (est_len >= 65536) */ {
+      if (est_len >= 65536) {
         struct length_log {
           size_t length = 0;
           inline void write(void const* ptr, size_t len) {
@@ -468,7 +447,8 @@ namespace nie {
         len = ll.length;
       }
 
-      auto frame = log_frame(len, index, now);
+      nie::require(len < 65536);
+      auto frame = log_frame(len, type, now);
       if (frame) [[likely]] {
         struct block_log {
           size_t leftover = 0;
