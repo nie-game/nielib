@@ -1,8 +1,8 @@
 #ifndef NIE_FANCY_CAST_HPP
 #define NIE_FANCY_CAST_HPP
 
-#include "../source_location.hpp"
 #include "require.hpp"
+#include "source_location.hpp"
 #include "startup.hpp"
 #include "string_literal.hpp"
 #include <array>

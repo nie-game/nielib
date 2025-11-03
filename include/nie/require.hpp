@@ -1,7 +1,7 @@
 #ifndef NIE_REQUIRE_HPP
 #define NIE_REQUIRE_HPP
 
-#include "../source_location.hpp"
+#include "source_location.hpp"
 #include <string_view>
 
 namespace nie {

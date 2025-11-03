@@ -5,7 +5,7 @@
 
 #include "nie/log.hpp"
 #include "nie/require.hpp"
-#include "source_location.hpp"
+#include "nie/source_location.hpp"
 #include <chrono>
 #include <expected>
 #include <functional>
