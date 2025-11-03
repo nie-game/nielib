@@ -83,8 +83,12 @@ function nielib_data()
   add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE",
     {public = true, force = true})
 
-  add_defines("NIE_EXPORT=[[gnu::visibility(\"default\"), gnu::dllimport]]", {interface = true})
-  add_defines("NIE_EXPORT=[[gnu::visibility(\"default\"), gnu::dllexport]]", {public = false})
+  if is_os("windows") then
+    add_defines("NIE_EXPORT=[[gnu::dllimport]]", {interface = true})
+    add_defines("NIE_EXPORT=[[gnu::dllexport]]", {public = false})
+  else
+    add_defines("NIE_EXPORT=[[gnu::visibility(\"default\")]]", {public = true})
+  end
 
   add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
   add_ldflags("-Wl,--gc-sections", {public = true, force = true})
