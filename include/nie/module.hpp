@@ -15,15 +15,20 @@ namespace nie {
     virtual std::span<void*> depends_any() noexcept = 0;
     virtual nie::errorable<void> init() noexcept = 0;
   };
+  struct dependency_info {
+    std::string_view name;
+    uint64_t major = uint64_t(-1LL);
+    uint64_t minor = uint64_t(-1LL);
+  };
   struct service_description {
-    virtual std::span<std::string_view> provides() noexcept = 0;
-    virtual std::span<std::string_view> depends_one() noexcept = 0;
-    virtual std::span<std::string_view> depends_any() noexcept = 0;
+    virtual std::span<dependency_info> provides() noexcept = 0;
+    virtual std::span<dependency_info> depends_one() noexcept = 0;
+    virtual std::span<dependency_info> depends_any() noexcept = 0;
     virtual nie::errorable<service*> instantiate() noexcept = 0;
   };
   struct base_dependency {
     void* data;
-    std::string_view name;
+    dependency_info info;
   };
 
   /* Keep the following lines to preserve binary compatibility */
@@ -43,7 +48,7 @@ namespace nie {
   }
   template <typename T> struct dependency : base_dependency {
     inline dependency() {
-      name = T::name;
+      info = T::info;
       global_dependencies().push_back(this);
     }
     inline T& operator*() {
@@ -51,7 +56,14 @@ namespace nie {
       nie::require(p);
       return *static_cast<T*>(p);
     }
+    inline T* operator->() {
+      auto p = data;
+      nie::require(p);
+      return static_cast<T*>(p);
+    }
   };
 } // namespace nie
+
+#define DECLARE_MODULE(name) extern "C" [[gnu::visibility("default"), gnu::dllexport]] void nieopen_##name(nie::module_ctx* mctx) noexcept
 
 #endif // NIE_MODULE_HPP
