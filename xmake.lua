@@ -49,9 +49,7 @@ tribute("system_error2", "Apache2", "https://github.com/ned14/status-code")
 tribute("short_alloc", "MIT", "https://howardhinnant.github.io/stack_alloc.html")
 tribute("expected", "CC0", "http://tl.tartanllama.xyz/")
 
-target("nielib")
-do
-  set_kind("shared")
+function nielib_data()
   add_packages("stack_alloc")
   add_packages("system_error2")
   add_packages("nontype_functional")
@@ -165,5 +163,16 @@ do
     target:linker():_tool().nf_syslink = target:linker():_tool().nf_link
     target:linkflags()
   end, {public = true})
+end
+target("nielib")
+do
+  set_kind("shared")
+  nielib_data()
+end
+target_end()
+target("nielib_static")
+do
+  set_kind("static")
+  nielib_data()
 end
 target_end()
