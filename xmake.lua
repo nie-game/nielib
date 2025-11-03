@@ -101,7 +101,8 @@ function nielib_data()
     "-Werror=call-to-pure-virtual-from-ctor-dtor", "-Werror=defaulted-function-deleted",
     "-Werror=delete-non-virtual-dtor", "-Werror=abstract-final-class", "-ftemplate-backtrace-limit=0",
     "-Werror=ignored-attributes", "-Werror=unused-value", "-Werror=uninitialized",
-    "-Werror=tautological-constant-out-of-range-compare", {public = true, force = true})
+    "-Werror=tautological-constant-out-of-range-compare", -- "-Werror=reorder-ctor","-Werror=dangling"
+    {public = true, force = true})
   if is_os("linux") then
     add_ldflags("-fuse-ld=lld", {public = true, force = true})
     add_shflags("-fuse-ld=lld", {public = true, force = true})

@@ -15,7 +15,7 @@ namespace nie {
   struct nyi : std::exception {
     std::string message;
     inline nyi(nie::source_location location = nie::source_location::current()) : nyi("", location) {}
-    nyi(std::string text, nie::source_location location = nie::source_location::current());
+    nyi(std::string text, nie::source_location location);
     inline const char* what() const noexcept {
       return message.data();
     }
@@ -54,7 +54,7 @@ namespace nie {
 
   template <typename T> using errorable = std::expected<T, std::error_code>;
   static constexpr int to_fatal(std::error_code ec) {
-    nie::fatal(ec.message());
+    nie::fatal(ec.message(), NIE_HERE);
     return 42;
   }
   static constexpr int to_exception(std::error_code ec) {
@@ -62,7 +62,7 @@ namespace nie {
   }
 
 #ifdef NIE_DEBUG
-#define NIE_UNREACHABLE nie::fatal("Unreachable reached")
+#define NIE_UNREACHABLE nie::fatal("Unreachable reached", NIE_HERE)
 #else
 #define NIE_UNREACHABLE __builtin_unreachable()
 #endif
