@@ -92,8 +92,6 @@ function nielib_data()
 
   add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
   add_ldflags("-Wl,--gc-sections", {public = true, force = true})
-  add_cxflags("-march=native", {public = true, force = true})
-  add_ldflags("-march=native", {public = true, force = true})
 
   add_cxxflags("-Werror=inconsistent-missing-override", {public = true, force = true})
   add_cxflags("-fuse-ld=lld", "-Werror=move", "-Werror=unused-result", "-Werror=return-type", "-Werror=switch",
@@ -123,6 +121,8 @@ function nielib_data()
       add_ldflags("-fsanitize=safe-stack", {public = true, force = true})
       add_shflags("-fsanitize=safe-stack", {public = true, force = true})]]
     else
+      add_cxflags("-march=native", {public = true, force = true})
+      add_ldflags("-march=native", {public = true, force = true})
     end
     add_cxflags("-fno-rtti", {public = true})
   elseif is_os("windows") then

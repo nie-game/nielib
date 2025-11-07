@@ -10,18 +10,24 @@ namespace nie {
     virtual ~ref_cnt_interface() noexcept = default;
     virtual void ref() const noexcept = 0;
     virtual void unref() const noexcept = 0;
+    virtual bool unique() const noexcept = 0;
+    inline virtual void destruct() noexcept {
+      delete this;
+    }
   };
-  template <typename T> class ref_cnt_impl final : ref_cnt_interface {
-  public:
-    inline ref_cnt_impl() noexcept : ref_cntr_(1) {}
+  template <typename T>
+    requires(std::is_base_of_v<ref_cnt_interface, T>)
+  struct ref_cnt_impl final : T {
+    template <typename U>
+      requires(std::is_base_of_v<ref_cnt_interface, U>)
+    friend struct sp;
+    using T::T;
+    inline ref_cnt_impl() noexcept = default;
     inline ~ref_cnt_impl() noexcept {
-      assert(this->ref_cntr_.load() == 1);
-#ifndef NDEBUG
-      ref_cntr_.store(0, std::memory_order_relaxed);
-#endif
+      assert(this->ref_cntr_.load() == 0);
     }
 
-    inline bool unique() const noexcept {
+    inline bool unique() const noexcept override {
       if (1 == ref_cntr_.load(std::memory_order_acquire)) {
         return true;
       }
@@ -34,19 +40,15 @@ namespace nie {
     }
 
     inline void unref() const noexcept final override {
-      assert(this->ref_cntr_.load() > 0);
-      if (1 == ref_cntr_.fetch_add(-1, std::memory_order_acq_rel)) {
-        delete this;
+      auto prev = ref_cntr_.fetch_add(-1, std::memory_order_acq_rel);
+      assert(prev);
+      if (1 == prev) {
+        const_cast<ref_cnt_impl<T>*>(this)->destruct();
       }
     }
 
   private:
-    mutable std::atomic<int32_t> ref_cntr_;
-
-    ref_cnt_impl(ref_cnt_impl&&) = delete;
-    ref_cnt_impl(const ref_cnt_impl&) = delete;
-    ref_cnt_impl& operator=(ref_cnt_impl&&) = delete;
-    ref_cnt_impl& operator=(const ref_cnt_impl&) = delete;
+    mutable std::atomic<int32_t> ref_cntr_ = 1;
   };
 
   template <typename T> static inline T* safe_ref(T* obj) noexcept {
@@ -63,8 +65,9 @@ namespace nie {
   }
 
   struct unsafe {};
-  template <typename T> class [[clang::trivial_abi]] sp {
-  public:
+  template <typename T>
+    requires(std::is_base_of_v<ref_cnt_interface, T>)
+  struct [[clang::trivial_abi]] sp {
     using element_type = T;
 
     constexpr sp() noexcept : ptr_(nullptr) {}
@@ -79,7 +82,7 @@ namespace nie {
     inline sp(sp<U>&& that) noexcept : ptr_(that.release()) {}
 
     explicit inline sp(T* obj) noexcept : ptr_(obj) {
-      assert(obj->getref_cnt() == 1);
+      assert(obj->unique());
     }
 
     explicit inline sp(unsafe, T* obj) noexcept : ptr_(obj) {}
@@ -154,24 +157,26 @@ namespace nie {
       swap(ptr_, that.ptr_);
     }
 
+    std::strong_ordering operator<=>(const sp<T>& b) const noexcept = default;
+    bool operator==(const sp<T>& b) const noexcept = default;
+
     using is_trivially_relocatable = std::true_type;
 
   private:
-    T* ptr_;
+    T* ptr_ = nullptr;
   };
 
-  template <typename T> inline void swap(sp<T>& a, sp<T>& b) noexcept {
-    a.swap(b);
-  }
-
-  template <typename T, typename U> inline std::strong_ordering operator<=>(const sp<T>& a, const sp<U>& b) noexcept {
-    return a.get() <=> b.get();
-  }
   template <typename T> inline std::strong_ordering operator<=>(const sp<T>& a, std::nullptr_t) noexcept {
     return a.get() <=> nullptr;
   }
   template <typename T> inline std::strong_ordering operator<=>(std::nullptr_t, const sp<T>& b) noexcept {
     return nullptr <=> b.get();
+  }
+  template <typename T> inline auto operator==(const sp<T>& a, std::nullptr_t) noexcept {
+    return a.get() == nullptr;
+  }
+  template <typename T> inline auto operator==(std::nullptr_t, const sp<T>& b) noexcept {
+    return nullptr == b.get();
   }
 
   template <typename C, typename CT, typename T>

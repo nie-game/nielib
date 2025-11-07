@@ -129,14 +129,17 @@ namespace nie {
         auto r = v.value.operator AR();
         auto c = r.canonicalize();
         str = std::span<const char>(reinterpret_cast<const char*>(c.begin()), reinterpret_cast<const char*>(c.end()));
+        logger.template write_int<uint64_t>(s.getProto().getId());
+        logger.template write_int<uint32_t>(str.size());
+        logger.write(str.data(), str.size());
       } else {
         R r = v.value;
         auto c = capnp::canonicalize(r);
         str = std::span<const char>(reinterpret_cast<const char*>(c.begin()), reinterpret_cast<const char*>(c.end()));
+        logger.template write_int<uint64_t>(s.getProto().getId());
+        logger.template write_int<uint32_t>(str.size());
+        logger.write(str.data(), str.size());
       }
-      logger.template write_int<uint64_t>(s.getProto().getId());
-      logger.template write_int<uint32_t>(str.size());
-      logger.write(str.data(), str.size());
     }
     inline static void format(std::stringstream& ss, const log_param<a, T>& v) {
       if constexpr (is_dynamic<typename R::Reads>::value)
