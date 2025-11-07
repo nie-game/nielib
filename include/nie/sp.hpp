@@ -11,13 +11,11 @@ namespace nie {
     virtual void ref() const noexcept = 0;
     virtual void unref() const noexcept = 0;
     virtual bool unique() const noexcept = 0;
-    inline virtual void destruct() noexcept {
-      delete this;
-    }
+    inline virtual void destruct() noexcept = 0;
   };
   template <typename T>
     requires(std::is_base_of_v<ref_cnt_interface, T>)
-  struct ref_cnt_impl final : T {
+  struct ref_cnt_impl : T {
     template <typename U>
       requires(std::is_base_of_v<ref_cnt_interface, U>)
     friend struct sp;
@@ -184,8 +182,34 @@ namespace nie {
     return os << sp.get();
   }
 
+  template <typename T> struct ref_cnt_impl_delete final : ref_cnt_impl<T> {
+    using ref_cnt_impl<T>::ref_cnt_impl;
+    void destruct() noexcept override {
+      delete this;
+    } // namespace nie
+  };
   template <typename T, typename... Args> sp<T> inline make_sp(Args&&... args) noexcept {
-    return sp<T>(unsafe{}, new ref_cnt_impl<T>(std::forward<Args>(args)...));
+    return sp<T>(new ref_cnt_impl_delete<T>(std::forward<Args>(args)...));
+  }
+
+  template <typename T, typename A> struct ref_cnt_impl_allocator final : ref_cnt_impl<T> {
+    template <typename... Args>
+    inline ref_cnt_impl_allocator(A alloc, Args&&... args) : ref_cnt_impl<T>(std::forward<Args>(args)...), alloc(std::move(alloc)) {}
+    void destruct() noexcept override {
+      using traits = std::allocator_traits<A>::template rebind_traits<ref_cnt_impl_allocator<T, A>>;
+      typename traits::allocator_type a(alloc);
+      ref_cnt_impl_allocator::~ref_cnt_impl_allocator();
+      traits::deallocate(a, this, 1);
+    } // namespace nie
+  private:
+    A alloc;
+  };
+  template <typename T, typename A, typename... Args> sp<T> inline allocate_sp(A& alloc, Args&&... args) noexcept {
+    using traits = std::allocator_traits<A>::template rebind_traits<
+        ref_cnt_impl_allocator<T, typename std::allocator_traits<A>::template rebind_alloc<int>>>;
+    typename traits::allocator_type falloc = alloc;
+    void* ptr = traits::allocate(falloc, 1);
+    return sp<T>(new (ptr) ref_cnt_impl_allocator<T, typename traits::template rebind_alloc<int>>(falloc, std::forward<Args>(args)...));
   }
 
   template <typename T> inline sp<T> ref_sp(T* obj) noexcept {

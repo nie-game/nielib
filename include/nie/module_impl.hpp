@@ -23,10 +23,11 @@ namespace nie {
       std::span<void*> depends_one() noexcept {
         return {};
       }
-      std::span<void*> depends_any() noexcept {
+      std::span<std::span<void*>> depends_any() noexcept {
         return {};
       }
       nie::errorable<void> init() noexcept {
+        nie::run_startup();
         return data_.init();
       }
     };
@@ -54,8 +55,8 @@ namespace nie {
     if (mctx->minor_version < NIE_MODULE_MINOR_VERSION) {                                                                                  \
       return mctx->error(#name ": nie.exe too old");                                                                                       \
     }                                                                                                                                      \
-    nie::run_startup();                                                                                                                    \
     mctx->services = nie::service_collector();                                                                                             \
+    mctx->base_dependencies = nie::global_dependencies();                                                                                  \
   }
 
 #endif // NIE_MODULE_IMPL_HPP

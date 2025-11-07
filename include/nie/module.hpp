@@ -12,13 +12,20 @@ namespace nie {
   struct service {
     virtual std::span<void*> provided() noexcept = 0;
     virtual std::span<void*> depends_one() noexcept = 0;
-    virtual std::span<void*> depends_any() noexcept = 0;
+    virtual std::span<std::span<void*>> depends_any() noexcept = 0;
     virtual nie::errorable<void> init() noexcept = 0;
   };
   struct dependency_info {
     std::string_view name;
     uint64_t major = uint64_t(-1LL);
     uint64_t minor = uint64_t(-1LL);
+    auto operator<=>(const dependency_info& o) const noexcept {
+      if (name != o.name)
+        return name <=> o.name;
+      if (major != o.major)
+        return major <=> o.major;
+      return minor <=> o.minor;
+    }
   };
   struct service_description {
     virtual std::span<dependency_info> provides() noexcept = 0;
@@ -39,10 +46,11 @@ namespace nie {
     /* Until here. After that you can change if you life, just make sure to do stuff right or change module_version */
     uint64_t minor_version = NIE_MODULE_MINOR_VERSION;
     std::span<service_description*> services;
+    std::span<base_dependency*> base_dependencies;
   };
   static_assert(offsetof(module_ctx, module_version) == 8);
 
-  inline std::vector<base_dependency*> global_dependencies() {
+  inline std::vector<base_dependency*>& global_dependencies() {
     static std::vector<base_dependency*> instance;
     return instance;
   }
