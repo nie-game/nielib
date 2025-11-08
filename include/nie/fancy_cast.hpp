@@ -3,8 +3,10 @@
 
 #include "require.hpp"
 #include "source_location.hpp"
+#include "startup.hpp"
 #include "string_literal.hpp"
 #include <array>
+#include <cassert>
 #include <concepts>
 #include <iostream>
 #include <memory>
@@ -46,7 +48,7 @@ namespace nie {
     }
 
   private:
-    [[gnu::const]] virtual void* fancy_cast(fancy_interface*) = 0;
+    [[gnu::const]] virtual void* fancy_cast(fancy_interface*, nie::source_location) = 0;
     virtual void fancy_debug(fancy_interface* i) = 0;
   };
 
@@ -66,7 +68,8 @@ namespace nie {
     }
 
   private:
-    [[gnu::const]] inline virtual void* fancy_cast(fancy_interface* i) override {
+    [[gnu::const]] inline virtual void* fancy_cast(fancy_interface* i, nie::source_location) override {
+      assert(false);
       return nullptr;
     }
     static consteval size_t fancy_cast_slot_count() {
@@ -144,14 +147,14 @@ namespace nie {
         ret[i + p1len] = p2converters[i];
       return ret;
     }
-    [[gnu::const]] inline void* fancy_cast(fancy_interface* i) override {
-      void* c = Parent1::fancy_cast(i);
+    [[gnu::const]] inline void* fancy_cast(fancy_interface* i, nie::source_location location) override {
+      void* c = Parent1::fancy_cast(i, location);
       if (c)
         return c;
-      return Parent2::fancy_cast(i);
+      return Parent2::fancy_cast(i, location);
     }
   };
-  extern fancy_interface* filter_fancy_interface(std::string_view, fancy_interface*);
+  NIE_EXPORT extern fancy_interface* filter_fancy_interface(std::string_view, fancy_interface*);
   template <typename T> struct get_fancy_interface {
     [[gnu::const]] static fancy_interface* fancy_name() {
       return T::fancy_name();
@@ -186,9 +189,9 @@ namespace nie {
         return fancy_cast_name_slots_instance;
       }
     };
-    inline static my_fancy_interface fancy_interface_;
-    inline static fancy_interface* fancy_interface_impl_ = &fancy_interface_; // filter_fancy_interface(name_t(), &fancy_interface_);
+    inline static my_fancy_interface fancy_interface_ref_;
     [[gnu::const]] static fancy_interface* fancy_name() {
+      assert(fancy_interface_impl_);
       return fancy_interface_impl_;
     }
     [[gnu::const]] fancy_interface* fancy_self() const override {
@@ -217,7 +220,7 @@ namespace nie {
       auto plen = fancy_inherit<Parents...>::fancy_cast_slot_count();
       auto prawslots = fancy_inherit<Parents...>::fancy_cast_name_rawslots();
       auto pslots = fancy_inherit<Parents...>::fancy_cast_name_slots();
-      ret[0] = fancy_interface_impl_;
+      ret[0] = filter_fancy_interface(name_t(), &fancy_interface_ref_);
       nie::require(ret[0]);
       size_t idx = 1;
       for (size_t i = 0; i < plen; i++) {
@@ -240,7 +243,7 @@ namespace nie {
       std::array<fancy_interface*, fancy_cast_slot_count()> ret;
       auto plen = fancy_inherit<Parents...>::fancy_cast_slot_count();
       auto prawslots = fancy_inherit<Parents...>::fancy_cast_name_rawslots();
-      ret[0] = &fancy_interface_;
+      ret[0] = &fancy_interface_ref_;
       size_t idx = 1;
       for (size_t i = 0; i < plen; i++) {
         bool add = true;
@@ -283,7 +286,8 @@ namespace nie {
     template <size_t j> static consteval fret fancy_cast_name_converters_idx() {
       return fancy_cast_name_converters<fancy, [](fancy* s) { return s; }>()[j];
     }
-    static inline auto fancy_cast_name_slots_instance = fancy_cast_name_slots();
+    static inline fancy_interface* fancy_interface_impl_ = filter_fancy_interface(name_t(), &fancy_interface_ref_); //
+    static inline std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_slots_instance = fancy_cast_name_slots();
     template <size_t j> inline void* fancy_cast_impl(fancy_interface* i) {
       if constexpr (j < fancy_cast_slot_count()) {
         if (fancy_cast_name_slots_instance[j] == i)
@@ -292,7 +296,7 @@ namespace nie {
       } else
         return nullptr;
     }
-    [[gnu::const]] void* fancy_cast(fancy_interface* i) override {
+    [[gnu::const]] void* fancy_cast(fancy_interface* i, nie::source_location location) override {
       return fancy_cast_impl<0>(i);
     }
 
@@ -308,7 +312,7 @@ namespace nie {
     if (reinterpret_cast<size_t>(s) < 0x100) {
       return nullptr;
     }
-    void* p = s->fancy_cast(D::fancy_name());
+    void* p = s->fancy_cast(D::fancy_name(), location);
     if (!p)
       return nullptr;
     return static_cast<D*>(p);
