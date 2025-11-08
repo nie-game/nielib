@@ -2,6 +2,7 @@
 #define string_LITERAL_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <format>
 #include <set>
 #include <shared_mutex>
@@ -143,7 +144,7 @@ namespace nie {
     string_data const* data_ = nullptr;
   };
 
-  NIE_EXPORT void register_literal(string_data const*);
+  NIE_EXPORT string_data const* register_literal(string_data const*);
 
   template <nie::string_literal T> struct string_init {
     struct my_string_data final : string_data {
@@ -154,9 +155,11 @@ namespace nie {
         return T();
       }
     };
-    inline static const my_string_data data_ = {};
     inline string operator()() {
-      return string(&data_);
+      static const my_string_data data_impl_ = {};
+      static const string_data* ptr_ = register_literal(&data_impl_);
+      assert(ptr_);
+      return string(ptr_);
     }
   };
   template <> struct string_init<""> {

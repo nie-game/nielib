@@ -14,10 +14,10 @@ namespace nie {
     inline virtual void destruct() noexcept = 0;
   };
   template <typename T>
-    requires(std::is_base_of_v<ref_cnt_interface, T>)
+  // requires(std::is_base_of_v<ref_cnt_interface, T>)
   struct ref_cnt_impl : T {
     template <typename U>
-      requires(std::is_base_of_v<ref_cnt_interface, U>)
+    // requires(std::is_base_of_v<ref_cnt_interface, U>)
     friend struct sp;
     using T::T;
     inline ref_cnt_impl() noexcept = default;
@@ -64,7 +64,7 @@ namespace nie {
 
   struct unsafe {};
   template <typename T>
-    requires(std::is_base_of_v<ref_cnt_interface, T>)
+  // requires(std::is_base_of_v<ref_cnt_interface, T>)
   struct [[clang::trivial_abi]] sp {
     using element_type = T;
 
@@ -170,10 +170,10 @@ namespace nie {
   template <typename T> inline std::strong_ordering operator<=>(std::nullptr_t, const sp<T>& b) noexcept {
     return nullptr <=> b.get();
   }
-  template <typename T> inline auto operator==(const sp<T>& a, std::nullptr_t) noexcept {
+  template <typename T> inline bool operator==(const sp<T>& a, std::nullptr_t) noexcept {
     return a.get() == nullptr;
   }
-  template <typename T> inline auto operator==(std::nullptr_t, const sp<T>& b) noexcept {
+  template <typename T> inline bool operator==(std::nullptr_t, const sp<T>& b) noexcept {
     return nullptr == b.get();
   }
 
