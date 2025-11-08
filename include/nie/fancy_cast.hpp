@@ -3,6 +3,7 @@
 
 #include "require.hpp"
 #include "source_location.hpp"
+#include "sp.hpp"
 #include "startup.hpp"
 #include "string_literal.hpp"
 #include <array>
@@ -333,6 +334,17 @@ namespace nie {
       D* p = fancy_cast<D>(s.get(), location);
       if (p)
         return {s, p};
+      else
+        return {};
+    } else
+      return {};
+  }
+  template <typename D, typename S>
+  std::sp<D> fancy_cast(const nie::sp<S>& s, nie::source_location location = nie::source_location::current()) {
+    if (s) {
+      D* p = fancy_cast<D>(s.get(), location);
+      if (p)
+        return nie::ref_sp(p);
       else
         return {};
     } else

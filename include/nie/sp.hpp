@@ -194,7 +194,7 @@ namespace nie {
 
   template <typename T, typename A> struct ref_cnt_impl_allocator final : ref_cnt_impl<T> {
     template <typename... Args>
-    inline ref_cnt_impl_allocator(A alloc, Args&&... args) : ref_cnt_impl<T>(std::forward<Args>(args)...), alloc(std::move(alloc)) {}
+    inline ref_cnt_impl_allocator(const A& alloc, Args&&... args) : ref_cnt_impl<T>(std::forward<Args>(args)...), alloc(alloc) {}
     void destruct() noexcept override {
       using traits = std::allocator_traits<A>::template rebind_traits<ref_cnt_impl_allocator<T, A>>;
       typename traits::allocator_type a(alloc);
@@ -204,12 +204,12 @@ namespace nie {
   private:
     A alloc;
   };
-  template <typename T, typename A, typename... Args> sp<T> inline allocate_sp(A& alloc, Args&&... args) noexcept {
+  template <typename T, typename A, typename... Args> sp<T> inline allocate_sp(const A& alloc, Args&&... args) noexcept {
     using traits = std::allocator_traits<A>::template rebind_traits<
         ref_cnt_impl_allocator<T, typename std::allocator_traits<A>::template rebind_alloc<int>>>;
     typename traits::allocator_type falloc = alloc;
     void* ptr = traits::allocate(falloc, 1);
-    return sp<T>(new (ptr) ref_cnt_impl_allocator<T, typename traits::template rebind_alloc<int>>(falloc, std::forward<Args>(args)...));
+    return sp<T>(new (ptr) ref_cnt_impl_allocator<T, typename traits::template rebind_alloc<int>>(alloc, std::forward<Args>(args)...));
   }
 
   template <typename T> inline sp<T> ref_sp(T* obj) noexcept {
