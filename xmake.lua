@@ -103,6 +103,13 @@ function nielib_data()
     "-Werror=tautological-constant-out-of-range-compare", "-Werror=argument-undefined-behaviour",
     "-Werror=vexing-parse", -- "-Werror=reorder-ctor","-Werror=dangling"
     {public = true, force = true})
+
+  if false then
+    add_cxflags("-fsanitize=address", {public = true})
+    add_shflags("-fsanitize=address", {public = true})
+    add_ldflags("-fsanitize=address", {public = true})
+  end
+
   if is_os("linux") then
     add_ldflags("-fuse-ld=lld", {public = true, force = true})
     add_shflags("-fuse-ld=lld", {public = true, force = true})
