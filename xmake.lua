@@ -104,7 +104,7 @@ function nielib_data()
     "-Werror=vexing-parse", -- "-Werror=reorder-ctor","-Werror=dangling"
     {public = true, force = true})
 
-  if false then
+  if is_mode("debug") then
     add_cxflags("-fsanitize=address", {public = true})
     add_shflags("-fsanitize=address", {public = true})
     add_ldflags("-fsanitize=address", {public = true})
