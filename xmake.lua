@@ -1,38 +1,3 @@
-add_requires("boost", {
-  system = false,
-  configs = {
-    python = false,
-    fiber = false,
-    process = false,
-    coroutine = false,
-    regex = false,
-    graph = false,
-    serialization = false,
-    random = false,
-    wave = false,
-    date_time = false,
-    locale = false,
-    iostreams = false,
-    program_options = false,
-    test = false,
-    chrono = false,
-    contract = false,
-    graph_parallel = false,
-    json = false,
-    log = false,
-    thread = true,
-    filesystem = false,
-    math = false,
-    mpi = false,
-    nowide = false,
-    stacktrace = false,
-    cmake = true,
-    asio = true,
-    beast = true,
-    system = true,
-    header_only = false,
-  },
-})
 function tribute(name, license, url)
   package(name)
   set_license(license)
@@ -60,7 +25,6 @@ function nielib_data()
   add_packages("skia-ref_ptr")
   add_packages("expected")
   add_packages("magic_enum", {public = true})
-  add_packages("boost", {public = true})
   add_files("src/*.cpp")
   add_includedirs("include/", {public = true})
   add_headerfiles("include/(**)", {public = true})
