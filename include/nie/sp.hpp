@@ -122,8 +122,7 @@ namespace nie {
     }
 
     inline T& operator*() const noexcept {
-      if (this->get() == nullptr)
-        throw nie::nyi();
+      assert(this->get() != nullptr);
       return *this->get();
     }
 

@@ -104,11 +104,4 @@ namespace nie {
     fatal_function(expletive, location);
     abort();
   }
-
-  nyi::nyi(std::string text, nie::source_location location) : message(std::format("NYI at {}: {}", location, text)) {
-    nie::logger<"nie">{}.warn<"nyi">("text"_log = text, "location"_log = location);
-    static logger<"nyi"> nyi_logger = {};
-    nyi_logger.warn<"NYI at {}: {}">("location"_log = location, "message"_log = text);
-  }
-
 } // namespace nie

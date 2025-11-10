@@ -38,10 +38,6 @@ template <nie::string_literal a> constexpr auto operator""_log() -> nie::log_par
 namespace vk {
   template <typename Type> struct isVulkanHandleType;
 }
-namespace spinemarrow {
-  struct node_handle_data;
-  using node_handle = std::shared_ptr<node_handle_data>;
-} // namespace spinemarrow
 namespace nie {
   NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time);
   NIE_EXPORT void write_log_file(std::string_view);
@@ -304,18 +300,6 @@ namespace nie {
       ss << std::format("{:#x}", size_t(v.value.ptr));
     }
   };
-  template <nie::string_literal a> struct log_info<log_param<a, spinemarrow::node_handle>> {
-    static constexpr auto name = "node_handle"_lit;
-    static constexpr size_t size = 8;
-
-    inline static void write(auto& logger, const log_param<a, spinemarrow::node_handle>& v);
-    inline static void format(std::stringstream& ss, const log_param<a, spinemarrow::node_handle>& v) {
-      if (v.value)
-        ss << v.value->key();
-      else
-        ss << "(nil)";
-    }
-  };
   template <typename T> struct log_name;
   template <nie::string_literal a, typename T> struct log_name<log_param<a, T>> {
     static constexpr nie::string_literal name = a;
@@ -508,17 +492,6 @@ namespace nie {
       return log_cookie{frame};
     }
   };
-  template <nie::string_literal a>
-  inline void log_info<log_param<a, spinemarrow::node_handle>>::write(auto& logger, const log_param<a, spinemarrow::node_handle>& v) {
-    auto ptr = v.value;
-    if (ptr) {
-      if (!ptr->logged.exchange(true)) [[unlikely]]
-        nie::logger<"spinemarrow">{}.info<"node_handle">("hash"_log = ptr->hash(), "name"_log = ptr->key());
-      logger.template write_int<uint64_t>(ptr->hash());
-    } else
-      logger.template write_int<uint64_t>(0);
-  }
-
 } // namespace nie
 inline void bleh(std::source_location location = std::source_location::current()) {
   nie::logger<>{}.trace<"bleh">("location"_log = location);

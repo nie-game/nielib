@@ -37,43 +37,43 @@ namespace nie {
 
   template <string_literal... a> struct string_literal_cat_r;
   template <string_literal a> struct string_literal_cat_r<a> {
-    inline static constexpr string_literal<a().size() + 1> result = {a()};
+    constexpr static string_literal<a().size() + 1> result = {a()};
   };
   template <string_literal a, string_literal b> struct string_literal_cat_r<a, b> {
-    inline static constexpr string_literal<a().size() + b().size() + 1> result = {a(), b()};
+    constexpr static string_literal<a().size() + b().size() + 1> result = {a(), b()};
   };
   template <string_literal a, string_literal... b> struct string_literal_cat_r<a, b...> {
-    inline static constexpr string_literal<a().size() + string_literal_cat_r<b...>::result().size() + 1> result = {
+    constexpr static string_literal<a().size() + string_literal_cat_r<b...>::result().size() + 1> result = {
         a(), string_literal_cat_r<b...>::result()};
   };
   template <string_literal... a>
   inline constexpr string_literal<string_literal_cat_r<a...>::result().size() + 1> string_literal_cat = string_literal_cat_r<a...>::result;
 
   template <string_literal... a> struct dotted_t {
-    inline static constexpr string_literal<1> value = {{0}};
+    constexpr static string_literal<1> value = {{0}};
   };
   template <string_literal a> struct dotted_t<a> {
-    inline static constexpr auto value = a;
+    constexpr static auto value = a;
   };
   template <string_literal a, string_literal b> struct dotted_t<a, b> {
-    inline static constexpr auto value = string_literal_cat<a, ".", b>;
+    constexpr static auto value = string_literal_cat<a, ".", b>;
   };
   template <string_literal a, string_literal... b> struct dotted_t<a, b...> {
-    inline static constexpr auto value = string_literal_cat<a, ".", dotted_t<b...>::value>;
+    constexpr static auto value = string_literal_cat<a, ".", dotted_t<b...>::value>;
   };
   template <string_literal... a> inline constexpr auto dotted = dotted_t<a...>::value;
 
   template <string_literal... a> struct commad_t {
-    inline static constexpr string_literal<1> value = {{0}};
+    constexpr static string_literal<1> value = {{0}};
   };
   template <string_literal a> struct commad_t<a> {
-    inline static constexpr auto value = a;
+    constexpr static auto value = a;
   };
   template <string_literal a, string_literal b> struct commad_t<a, b> {
-    inline static constexpr auto value = string_literal_cat<a, ", ", b>;
+    constexpr static auto value = string_literal_cat<a, ", ", b>;
   };
   template <string_literal a, string_literal... b> struct commad_t<a, b...> {
-    inline static constexpr auto value = string_literal_cat<a, ", ", commad_t<b...>::value>;
+    constexpr static auto value = string_literal_cat<a, ", ", commad_t<b...>::value>;
   };
   template <string_literal... a> inline constexpr auto commad = commad_t<a...>::value;
 

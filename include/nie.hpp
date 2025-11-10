@@ -12,15 +12,6 @@
 #include <memory>
 
 namespace nie {
-  struct nyi : std::exception {
-    std::string message;
-    inline nyi(nie::source_location location = nie::source_location::current()) : nyi("", location) {}
-    nyi(std::string text, nie::source_location location);
-    inline const char* what() const noexcept {
-      return message.data();
-    }
-  };
-
   template <typename T> struct tuneable {
     NIE_EXPORT tuneable(std::string_view name, std::string_view description, T default_value);
     inline operator T() const {
