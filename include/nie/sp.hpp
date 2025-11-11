@@ -187,7 +187,9 @@ namespace nie {
       delete this;
     } // namespace nie
   };
-  template <typename T, typename... Args> sp<T> inline make_sp(Args&&... args) noexcept {
+  template <typename T, typename... Args>
+    requires(std::is_base_of_v<ref_cnt_interface, T>)
+  sp<T> inline make_sp(Args&&... args) noexcept {
     return sp<T>(new ref_cnt_impl_delete<T>(std::forward<Args>(args)...));
   }
 

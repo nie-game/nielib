@@ -13,7 +13,7 @@ namespace nie {
   template <typename T> struct allocator {
     template <typename U> friend struct allocator;
     template <typename T2, typename U> friend bool operator==(const allocator<T2>& a, const allocator<U>& b);
-    allocator() = default;
+    allocator() = delete;
     allocator(const allocator&) = default;
     allocator(allocator&&) = default;
     allocator& operator=(const allocator&) = default;
@@ -28,6 +28,7 @@ namespace nie {
     inline T* allocate(std::size_t n) {
       static_assert(
           (std::alignment_of_v<T> == 1) || (std::alignment_of_v<T> == 2) || (std::alignment_of_v<T> == 4) || (std::alignment_of_v<T> == 8));
+      assert(!!*this);
       assert(!!allocator_);
       assert(!!n);
       auto ret = reinterpret_cast<T*>(allocator_->allocate(sizeof(T) * n));
@@ -41,6 +42,9 @@ namespace nie {
       assert(!!n);
       return allocator_->deallocate(reinterpret_cast<char*>(p), sizeof(T) * n);
     }
+    inline bool operator!() const {
+      return !allocator_;
+    }
 
   private:
     nie::sp<allocator_interface> allocator_;
@@ -48,6 +52,7 @@ namespace nie {
   template <typename T, typename U> inline bool operator==(const allocator<T>& a, const allocator<U>& b) {
     return a.allocator_ == b.allocator_;
   }
+  NIE_EXPORT nie::sp<allocator_interface> malloc_allocator();
 } // namespace nie
 
 #endif // NIE_ALLOCATOR_HPP
