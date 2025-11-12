@@ -68,12 +68,6 @@ function nielib_data()
     "-Werror=vexing-parse", -- "-Werror=reorder-ctor","-Werror=dangling"
     {public = true, force = true})
 
-  if is_mode("debug") then
-    add_cxflags("-fsanitize=address", {public = true})
-    add_shflags("-fsanitize=address", {public = true})
-    add_ldflags("-fsanitize=address", {public = true})
-  end
-
   if is_os("linux") then
     add_ldflags("-fuse-ld=lld", {public = true, force = true})
     add_shflags("-fuse-ld=lld", {public = true, force = true})
@@ -146,6 +140,11 @@ target("nielib")
 do
   set_kind("shared")
   nielib_data()
+  if is_mode("debug") then
+    add_cxflags("-fsanitize=address", {public = true})
+    add_shflags("-fsanitize=address", {public = true})
+    add_ldflags("-fsanitize=address", {public = true})
+  end
 end
 target_end()
 target("nielib_static")

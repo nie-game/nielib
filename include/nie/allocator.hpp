@@ -2,6 +2,7 @@
 #define NIE_ALLOCATOR_HPP
 
 #include "sp.hpp"
+#include <memory>
 
 namespace nie {
   struct allocator_interface : ref_cnt_interface {
@@ -45,6 +46,9 @@ namespace nie {
     inline bool operator!() const {
       return !allocator_;
     }
+    inline nie::sp<allocator_interface> arena() const {
+      return allocator_;
+    }
 
   private:
     nie::sp<allocator_interface> allocator_;
@@ -53,6 +57,50 @@ namespace nie {
     return a.allocator_ == b.allocator_;
   }
   NIE_EXPORT nie::sp<allocator_interface> malloc_allocator();
+
+  struct allocation_data {
+    std::size_t n;
+    nie::sp<allocator_interface> allocator_;
+  };
+  inline void* anonymous_allocate(nie::sp<allocator_interface> ctx, std::size_t n) noexcept {
+    assert(!!ctx);
+    auto ctxp = ctx.get();
+    auto dptr = ctxp->allocate(n + sizeof(allocation_data));
+    auto w = new (dptr) allocation_data{n, std::move(ctx)};
+    assert(!!w->allocator_);
+    auto ptr = w + 1;
+    assert((std::size_t(ptr) & 0x7) == 0);
+    return ptr;
+  }
+  inline void anonymous_deallocate(void* d, std::size_t n) noexcept {
+    auto fd = reinterpret_cast<allocation_data*>(d) - 1;
+    assert(!!fd->allocator_);
+    assert(fd->n == n);
+    auto ctx = std::move(fd->allocator_);
+    fd->~allocation_data();
+    assert(!!ctx);
+    ctx->deallocate(reinterpret_cast<char*>(fd), n + sizeof(allocation_data));
+  }
+  inline void anonymous_deallocate(void* d) noexcept {
+    auto fd = reinterpret_cast<allocation_data*>(d) - 1;
+    assert(!!fd->allocator_);
+    auto ctx = std::move(fd->allocator_);
+    fd->~allocation_data();
+    assert(!!ctx);
+    ctx->deallocate(reinterpret_cast<char*>(fd), fd->n + sizeof(allocation_data));
+  }
+
+  struct anonymous_deleter {
+    template <typename T> inline void operator()(T* ptr) const {
+      ptr->~T();
+      anonymous_deallocate(ptr);
+    }
+  };
+  template <typename T> using unique_ptr = std::unique_ptr<T, anonymous_deleter>;
+  template <typename T, typename... Args> inline unique_ptr<T> allocate_unique(const nie::allocator<T>& alloc, Args&&... args) {
+    auto ptr = anonymous_allocate(alloc.arena(), sizeof(T));
+    return {new (ptr) T(std::forward<Args>(args)...), {}};
+  }
 } // namespace nie
 
 #endif // NIE_ALLOCATOR_HPP

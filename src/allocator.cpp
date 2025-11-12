@@ -1,18 +1,18 @@
 #include <nie/allocator.hpp>
 namespace nie {
   struct malloc_allocator : nie::allocator_interface {
-    std::atomic<uint64_t> cnt = 0;
+    std::atomic<uint64_t> sum = 0;
     virtual char* allocate(std::size_t n) noexcept {
-      cnt += n;
+      sum += n;
       return (char*)malloc(n);
     }
     virtual void deallocate(char* p, std::size_t n) noexcept {
-      assert(cnt >= n);
-      cnt -= n;
+      assert(sum >= n);
+      sum -= n;
       free(p);
     }
     void verify_empty() noexcept {
-      assert(cnt == 0);
+      assert(sum.load() == 0);
     }
   };
 
