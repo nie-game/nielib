@@ -140,7 +140,7 @@ target("nielib")
 do
   set_kind("shared")
   nielib_data()
-  if is_mode("debug") then
+  if false and is_mode("debug") then
     add_cxflags("-fsanitize=address", {public = true})
     add_shflags("-fsanitize=address", {public = true})
     add_ldflags("-fsanitize=address", {public = true})

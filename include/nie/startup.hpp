@@ -17,6 +17,7 @@ namespace nie {
     auto funcs = std::move(startup_funcs());
     for (auto& f : funcs)
       f();
+    assert(startup_funcs().empty());
   }
 
   bool register_startup(std::function<void()>);

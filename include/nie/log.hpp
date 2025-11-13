@@ -51,7 +51,19 @@ namespace nie {
   struct log_cookie {
     void* ptr = nullptr;
   };
-  template <typename T, typename Enabler = void> struct log_info;
+  template <typename T, typename Enabler = void> struct log_info {
+    static constexpr auto name = "invalid"_lit;
+    static constexpr size_t size = 65536;
+
+    inline static void write(auto& logger, const T& v) {
+      auto str = std::string_view("-fucked-");
+      logger.template write_int<uint32_t>(str.size());
+      logger.write(str.data(), str.size());
+    }
+    inline static void format(std::stringstream& ss, const T& v) {
+      ss << "-fucked-";
+    }
+  };
   template <typename T> struct fallback_formatter;
   template <std::formattable<char> T> struct fallback_formatter<T> {
     using valid = void;
