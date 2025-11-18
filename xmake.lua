@@ -147,6 +147,11 @@ do
     add_shflags("-fsanitize=address", {public = true})
     add_ldflags("-fsanitize=address", {public = true})
   end
+  if false and is_mode("debug") then
+    add_cxflags("-fsanitize=thread", {public = true})
+    add_shflags("-fsanitize=thread", {public = true})
+    add_ldflags("-fsanitize=thread", {public = true})
+  end
 end
 target_end()
 target("nielib_static")

@@ -2,7 +2,7 @@
 #define NIE_MODULE_HPP
 
 #define NIE_MODULE_REFERENCE_VERSION 1
-#define NIE_MODULE_MINOR_VERSION 0
+#define NIE_MODULE_MINOR_VERSION 1
 
 #include "../nie.hpp"
 #include <forward_list>
@@ -14,6 +14,7 @@ namespace nie {
     virtual std::span<void*> depends_one() noexcept = 0;
     virtual std::span<std::span<void*>> depends_any() noexcept = 0;
     virtual nie::errorable<void> init() noexcept = 0;
+    virtual void destroy() noexcept = 0;
   };
   struct dependency_info {
     std::string_view name;

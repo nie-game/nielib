@@ -10,11 +10,11 @@ namespace nie {
     static std::vector<service_description*> inst;
     return inst;
   }
-  template <typename T, string_literal name_t, typename... Bases> struct service_register : service_description {
+  template <typename T, string_literal name_t, typename... Bases> struct service_register final : service_description {
     inline service_register() {
       service_collector().push_back(this);
     }
-    struct service_wrapper : nie::service {
+    struct service_wrapper final : nie::service {
       T data_;
       std::array<void*, sizeof...(Bases)> provided_{static_cast<Bases*>(&data_)...};
       std::span<void*> provided() noexcept {
@@ -29,6 +29,9 @@ namespace nie {
       nie::errorable<void> init() noexcept {
         nie::run_startup();
         return data_.init();
+      }
+      void destroy() noexcept {
+        delete this;
       }
     };
     inline std::span<dependency_info> provides() noexcept override {

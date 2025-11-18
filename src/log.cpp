@@ -214,6 +214,15 @@ namespace nie {
     return idx;
   }
   NIE_EXPORT void init_log() {
+    atexit([] {
+      delete crashdump_buffer;
+      log_buffer* buffer = first_buffer;
+      while (buffer) {
+        auto cur = buffer;
+        buffer = buffer->next;
+        delete cur;
+      }
+    });
 #if 0
     void* ptr = nullptr;
     bool debug_log = false;
