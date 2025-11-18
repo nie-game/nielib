@@ -190,7 +190,7 @@ namespace nie {
     std::unique_lock lock(mtx);
     if (set.contains(s))
       return;
-    nie::logger<>{}.info<"string_cache">("index"_log = size_t(s.ptr()), "data"_log = s());
+    nie::logger<>{}.internal<"string_cache">("index"_log = size_t(s.ptr()), "data"_log = s());
     set.insert(s);
     return;
   }

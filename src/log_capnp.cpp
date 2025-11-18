@@ -20,8 +20,7 @@ namespace nie {
       register_capnp_me(t.asList().getElementType());
   }
   NIE_EXPORT void register_capnp_me(capnp::Schema s) {
-    std::println("Registering {:#x}", s.getProto().getId());
-    if (register_capnp(s.getProto().getId(), [&] { nie::logger<>{}.info<"capnp">("schema"_log = s.getProto()); })) {
+    if (register_capnp(s.getProto().getId(), [&] { nie::logger<>{}.internal<"capnp">("schema"_log = s.getProto()); })) {
       if (s.getProto().isStruct())
         for (auto f : s.asStruct().getFields()) {
           register_capnp_me(f.getType());
