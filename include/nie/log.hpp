@@ -39,7 +39,11 @@ namespace vk {
   template <typename Type> struct isVulkanHandleType;
 }
 namespace nie {
-  NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time);
+  struct log_cookie {
+    uint64_t data_;
+  };
+
+  NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time, log_cookie& cookie);
   NIE_EXPORT void write_log_file(std::string_view);
   NIE_EXPORT void add_log_disabler(std::string_view, bool*);
   NIE_EXPORT void init_log();
@@ -48,9 +52,6 @@ namespace nie {
   NIE_EXPORT void iterate_frames(const nie::function_ref<void(std::span<const char>)>&);
   constexpr size_t frame_size = 1024 * 1024 * 16;
 
-  struct log_cookie {
-    void* ptr = nullptr;
-  };
   template <typename T, typename Enabler = void> struct log_info {
     static constexpr auto name = "invalid"_lit;
     static constexpr size_t size = 65536;
@@ -300,16 +301,14 @@ namespace nie {
   };
   template <nie::string_literal a> struct log_info<log_param<a, log_cookie>> {
     static constexpr auto name = "cookie"_lit;
-    static constexpr size_t size = 4;
+    static constexpr size_t size = 8;
 
     inline static void write(auto& logger, const log_param<a, log_cookie>& v) {
-      uint32_t p = ((logger.frame != nullptr) && (v.value.ptr != nullptr))
-                       ? uint32_t(reinterpret_cast<char*>(logger.frame) - reinterpret_cast<char*>(v.value.ptr))
-                       : uint32_t(0);
+      uint64_t p = v.value.data_;
       logger.write(&p, sizeof(p));
     }
     inline static void format(std::stringstream& ss, const log_param<a, log_cookie>& v) {
-      ss << std::format("{:#x}", size_t(v.value.ptr));
+      ss << std::format("{:#x}", size_t(v.value.data_));
     }
   };
   template <typename T> struct log_name;
@@ -349,7 +348,7 @@ namespace nie {
     assert(false);
   }
   template <string_literal message> struct log_message {
-    static constexpr bool cookie = true;
+    static inline const bool cookie = true;
   };
   template <string_literal message> struct log_message_disable {
     inline static bool is_disabled = false;
@@ -358,30 +357,29 @@ namespace nie {
 
   template <string_literal... area> struct logger {
     template <string_literal message, typename... T> inline log_cookie internal(const T&... args) {
-      return do_log<level_e::internal, message, T...>(args...);
+      return flexible_log<level_e::internal, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie trace(const T&... args) {
-      return do_log<level_e::trace, message, T...>(args...);
+      return flexible_log<level_e::trace, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie debug(const T&... args) {
-      return do_log<level_e::debug, message, T...>(args...);
+      return flexible_log<level_e::debug, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie info(const T&... args) {
-      return do_log<level_e::info, message, T...>(args...);
+      return flexible_log<level_e::info, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie warn(const T&... args) {
-      return do_log<level_e::warn, message, T...>(args...);
+      return flexible_log<level_e::warn, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie error(const T&... args) {
-      return do_log<level_e::error, message, T...>(args...);
+      return flexible_log<level_e::error, message, T...>(args...);
     }
     template <string_literal message, typename... T> [[noreturn]] inline void fatal(const T&... args) {
-      do_log<level_e::fatal, message, T...>(args...);
+      flexible_log<level_e::fatal, message, T...>(args...);
       nie::fatal("fatal failed");
     }
 
-  private:
-    template <level_e level, string_literal message, typename... Args> inline log_cookie do_log(const Args&... args) {
+    template <level_e level, string_literal message, typename... Args> inline log_cookie flexible_log(const Args&... args) {
       auto now = std::chrono::tai_clock::now();
       constexpr auto msg_data = dotted<area..., message>;
       constexpr auto text = string_literal_cat<"0:",
@@ -430,11 +428,11 @@ namespace nie {
           std::println("FAT!!! [{}] {} {}: {}", now, levstr(level), dotted<area..., message>(), ss.str());
           std::cout << std::endl;
           abort();
-          return {nullptr};
+          return {0};
 #else
           std::cout << "Log Frame too fat" << std::endl;
           abort();
-          return {nullptr};
+          return {0};
 #endif
         }
         // #endif
@@ -443,8 +441,9 @@ namespace nie {
         len = ll.length;
       }
 
+      log_cookie cookie;
       nie::require(len < 65536);
-      auto frame = log_frame(len, type, now);
+      auto frame = log_frame(len, type, now, cookie);
       if (frame) [[likely]] {
         struct block_log {
           size_t leftover = 0;
@@ -501,7 +500,7 @@ namespace nie {
             std::println("[{} {:#x}] {} {}: {}", now, size_t(frame), levstr(level), dotted<area..., message>(), ss.str());
           }
         }
-      return log_cookie{frame};
+      return cookie;
     }
   };
 } // namespace nie

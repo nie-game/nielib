@@ -41,6 +41,7 @@ namespace nie {
   struct log_buffer {
     log_buffer* next = nullptr;
     std::atomic<uint64_t> pos = 0;
+    std::atomic<uint64_t> size = 0;
     std::array<char, frame_size> data;
   };
   std::atomic<log_buffer*> current_buffer = nullptr;
@@ -55,7 +56,6 @@ namespace nie {
     volatile uint64_t time;
     volatile uint64_t size;
     volatile uint64_t type;
-    char data[];
     inline log_frame_t(size_t size, uint64_t type, std::chrono::tai_clock::time_point time)
         : size(size), type(type), time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()) {}
     log_frame_t() = delete;
@@ -75,7 +75,15 @@ namespace nie {
     }
   };
 
-  NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time) {
+  struct address_frame : log_frame_t {
+    address_frame() : log_frame_t(8, std::bit_cast<size_t>(&log_message<"0:6:7:segment:A:uint64:7:segment::">::cookie), {}) {}
+    void* ptr = this;
+  };
+  static_assert(sizeof(log_frame_t) == 24);
+  static_assert(sizeof(address_frame) == 32);
+
+  std::atomic<uint64_t> log_data_sum = 16;
+  NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time, log_cookie& cookie) {
     assert(size % 8 == 0);
     // std::cout << "SIZE " << size << std::endl;
     while (true) {
@@ -83,10 +91,15 @@ namespace nie {
       if (buf) {
         auto npos = buf->pos.fetch_add(size + sizeof(log_frame_t));
         if ((npos + size + sizeof(log_frame_t)) < frame_size) {
-          return &((new (&buf->data.at(npos)) log_frame_t(size, type, time))->data[0]);
+          buf->size.fetch_add(size + sizeof(log_frame_t));
+          cookie.data_ = std::bit_cast<size_t>(&buf->data.at(npos));
+          return reinterpret_cast<char*>(new (&buf->data.at(npos)) log_frame_t(size, type, time)) + sizeof(log_frame_t);
         }
       }
       auto new_buffer = new log_buffer;
+      new_buffer->pos += sizeof(address_frame);
+      new_buffer->size += sizeof(address_frame);
+      new (new_buffer->data.data()) address_frame;
       auto old_buffer = current_buffer.exchange(new_buffer);
       if (old_buffer)
         old_buffer->next = new_buffer;
@@ -109,8 +122,10 @@ namespace nie {
     cb({reinterpret_cast<const char*>(&hd), sizeof(header_data)});
     auto buf = first_buffer;
     while (buf) {
-      if (buf->pos)
-        cb(std::span<const char>{buf->data}.subspan(0, buf->pos));
+      auto s = buf->size.load();
+      // std::println("iterate_frames {} / {}", s, log_data_sum.load());
+      if (s)
+        cb(std::span<const char>{buf->data}.subspan(0, s));
       buf = buf->next;
     }
     if (crashdump_buffer->pos)

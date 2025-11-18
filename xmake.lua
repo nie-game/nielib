@@ -15,6 +15,7 @@ tribute("short_alloc", "MIT", "https://howardhinnant.github.io/stack_alloc.html"
 tribute("expected", "CC0", "http://tl.tartanllama.xyz/")
 
 add_requires("magic_enum")
+add_requires("capnproto 1.1.0", {debug = true})
 
 function nielib_data()
   add_packages("stack_alloc")
@@ -31,6 +32,7 @@ function nielib_data()
   add_defines("NIELIB_FULL", {public = true})
   add_cxflags("-fasynchronous-unwind-tables", {public = true})
   add_ldflags("-fasynchronous-unwind-tables", {public = true})
+  add_packages("capnproto")
 
   add_defines("ASIO_HAS_CO_AWAIT=1", "BOOST_ASIO_HAS_CO_AWAIT=1", {public = true, force = true})
   add_defines("ASIO_HAS_STD_COROUTINE=1", "BOOST_ASIO_HAS_STD_COROUTINE=1", {public = true, force = true})

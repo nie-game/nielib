@@ -29,6 +29,8 @@ namespace nie {
     // using well = void;
   };
 
+  NIE_EXPORT void register_capnp_me(capnp::Schema s);
+
   template <nie::string_literal a, typename T> struct log_info<log_param<a, T>, typename base<T>::well> {
     static constexpr auto name = "capnp"_lit;
     static constexpr size_t size = 65536;
@@ -99,30 +101,16 @@ namespace nie {
       }
     }
 
-    inline static capnp::Schema schema(R v) {
+    inline static capnp::StructSchema schema(R v) {
       if constexpr (is_dynamic<typename R::Reads>::value)
         return v.getSchema();
       else
         return capnp::Schema::from<typename R::Reads>();
     }
 
-    inline static void register_capnp(uint64_t s, const nie::function_ref<void()>& cb) {
-      static std::shared_mutex mtx;
-      static std::set<uint64_t> set = {0xE682AB4CF923A417ULL};
-      {
-        std::shared_lock lock(mtx);
-        if (set.contains(s))
-          return;
-      }
-      cb();
-      std::unique_lock lock(mtx);
-      set.insert(s);
-      return;
-    }
-
     inline static void write(auto& logger, const log_param<a, T>& v) {
       auto s = schema(v.value);
-      register_capnp(s.getProto().getId(), [&] { nie::logger<>{}.info<"capnp">("schema"_log = s.getProto()); });
+      register_capnp_me(s);
       std::span<const char> str;
       if constexpr (is_dynamic<typename R::Reads>::value) {
         using AR = capnp::AnyStruct::Reader;
