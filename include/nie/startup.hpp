@@ -1,6 +1,7 @@
 #ifndef NIE_STARTUP_HPP
 #define NIE_STARTUP_HPP
 
+#include <cassert>
 #include <forward_list>
 #include <functional>
 

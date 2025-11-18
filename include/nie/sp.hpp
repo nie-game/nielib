@@ -4,9 +4,10 @@
 #include <atomic>
 #include <iostream>
 #include <nie.hpp>
+#include <nie/fancy_cast.hpp>
 
 namespace nie {
-  struct ref_cnt_interface {
+  struct ref_cnt_interface : nie::fancy<ref_cnt_interface, "nie::ref_cnt_interface"> {
     virtual ~ref_cnt_interface() noexcept = default;
     virtual void ref() const noexcept = 0;
     virtual void unref() const noexcept = 0;
@@ -223,6 +224,18 @@ namespace nie {
 
   template <typename T> struct is_sp : std::false_type {};
   template <typename T> struct is_sp<nie::sp<T>> : std::true_type {};
+
+  template <typename D, typename S>
+  std::sp<D> fancy_cast(const nie::sp<S>& s, nie::source_location location = nie::source_location::current()) {
+    if (s) {
+      D* p = fancy_cast<D>(s.get(), location);
+      if (p)
+        return nie::ref_sp(p);
+      else
+        return {};
+    } else
+      return {};
+  }
 } // namespace nie
 
 namespace std {
