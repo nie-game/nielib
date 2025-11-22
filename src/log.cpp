@@ -57,7 +57,7 @@ namespace nie {
     volatile uint64_t size;
     volatile uint64_t type;
     inline log_frame_t(size_t size, uint64_t type, std::chrono::tai_clock::time_point time)
-        : size(size), type(type), time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()) {}
+        : time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()), size(size), type(type) {}
     log_frame_t() = delete;
     log_frame_t(const log_frame_t&) = delete;
     log_frame_t(log_frame_t&&) = delete;

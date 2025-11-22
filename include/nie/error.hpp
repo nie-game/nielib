@@ -2,6 +2,8 @@
 #define NIE_ERROR_HPP
 
 #include "function_ref.hpp"
+#include "nie.hpp"
+#include "source_location.hpp"
 #include <magic_enum/magic_enum.hpp>
 #include <span>
 #include <string_view>
@@ -11,6 +13,9 @@
 template <typename> struct nie_error_database;
 namespace nie {
   NIE_EXPORT std::error_category& filter_error_category(std::string_view, std::span<std::pair<int, std::string_view>>);
+  inline void fatal(std::error_code expletive, nie::source_location location = nie::source_location::current()) {
+    nie::fatal(std::format("{}: {}", expletive.category().name(), expletive.message()), location);
+  }
 } // namespace nie
 template <typename T>
   requires(std::is_void_v<typename nie_error_database<T>::good>)

@@ -34,16 +34,8 @@ function nielib_data()
   add_ldflags("-fasynchronous-unwind-tables", {public = true})
   add_packages("capnproto")
 
-  add_defines("ASIO_HAS_CO_AWAIT=1", "BOOST_ASIO_HAS_CO_AWAIT=1", {public = true, force = true})
-  add_defines("ASIO_HAS_STD_COROUTINE=1", "BOOST_ASIO_HAS_STD_COROUTINE=1", {public = true, force = true})
-  add_defines("ASIO_HAS_STD_SYSTEM_ERROR=1", "BOOST_ASIO_HAS_STD_SYSTEM_ERROR=1", {public = true, force = true})
-  add_defines("ASIO_RECYCLING_ALLOCATOR_CACHE_SIZE=128", "BOOST_ASIO_RECYCLING_ALLOCATOR_CACHE_SIZE=128",
-    {public = true, force = true})
-  add_defines("ASIO_DISABLE_SERIAL_PORT", "BOOST_ASIO_DISABLE_SERIAL_PORT", {public = true, force = true})
-  add_defines("_ASIO_NO_EXCEPTIONS", "BOOST_ASIO_NO_EXCEPTIONS", {public = true, force = true})
   add_defines("GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true, force = true})
   add_defines("JSON_HAS_RANGES=1", {public = true, force = true}) -- https://reviews.llvm.org/D149276
-  add_defines("BOOST_DISABLE_CURRENT_LOCATION", {public = true, force = true})
   add_defines("JSON_USE_IMPLICIT_CONVERSIONS=0", {public = true, force = true})
   add_defines("KJ_STD_COMPAT", {public = true, force = true})
   add_defines("CXXOPTS_NO_RTTI", {public = true, force = true})
@@ -59,6 +51,9 @@ function nielib_data()
 
   add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
   add_ldflags("-Wl,--gc-sections", {public = true, force = true})
+  add_shflags("-Wl,--gc-sections", {public = true, force = true})
+  add_ldflags("-Wl,--exclude-libs,ALL", {public = true, force = true})
+  add_shflags("-Wl,--exclude-libs,ALL", {public = true, force = true})
 
   add_cxxflags("-Werror=inconsistent-missing-override", {public = true, force = true})
   add_cxflags("-fuse-ld=lld", "-Werror=move", "-Werror=unused-result", "-Werror=return-type", "-Werror=switch",
@@ -67,14 +62,13 @@ function nielib_data()
     "-Werror=delete-non-virtual-dtor", "-Werror=abstract-final-class", "-ftemplate-backtrace-limit=0",
     "-Werror=ignored-attributes", "-Werror=unused-value", "-Werror=uninitialized",
     "-Werror=tautological-constant-out-of-range-compare", "-Werror=argument-undefined-behaviour",
-    "-Werror=vexing-parse", -- "-Werror=reorder-ctor","-Werror=dangling"
+    "-Werror=vexing-parse",  "-Werror=reorder-ctor","-Werror=dangling",
     {public = true, force = true})
 
   if is_os("linux") then
     add_ldflags("-fuse-ld=lld", {public = true, force = true})
     add_shflags("-fuse-ld=lld", {public = true, force = true})
     add_cxflags("-Wall", {public = true, force = true})
-    add_defines("BOOST_ASIO_HAS_IO_URING=1", "ASIO_HAS_IO_URING=1", {public = true, force = true})
     add_cxflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
     add_shflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
     add_ldflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
@@ -104,7 +98,6 @@ function nielib_data()
   if is_mode("debug") then
     add_defines("_DEBUG", {public = true})
   else
-    add_defines("BOOST_DISABLE_CURRENT_LOCATION", {public = true})
     add_defines("NDEBUG", {public = true})
   end
     on_load(function(target)

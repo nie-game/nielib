@@ -1,6 +1,7 @@
 #ifndef NIE_FANCY_CAST_HPP
 #define NIE_FANCY_CAST_HPP
 
+#include "nie.hpp"
 #include "require.hpp"
 #include "source_location.hpp"
 #include "startup.hpp"
@@ -69,7 +70,7 @@ namespace nie {
 
   private:
     [[gnu::const]] inline virtual void* fancy_cast(fancy_interface* i, nie::source_location) override {
-      nie::fatal();
+      NIE_UNREACHABLE;
       return nullptr;
     }
     static consteval size_t fancy_cast_slot_count() {
@@ -361,8 +362,7 @@ template <> struct std::formatter<nie::fancy_interface*> {
     if (it == ctx.end())
       return it;
 #ifdef NIELIB_FULL
-    if (*it != '}')
-      throw std::format_error("Invalid format args for nie::fancy_interface*.");
+    assert(*it == '}');
 #endif
     return it;
   }

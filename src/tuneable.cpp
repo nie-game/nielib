@@ -22,9 +22,9 @@ namespace nie {
       size_t result{};
       auto [ptr, ec]{std::from_chars(text.data(), text.data() + text.size(), result)};
       if (ptr != (text.data() + text.size()))
-        throw std::invalid_argument("extraneous input");
+        nie::fatal("extraneous input");
       if (ec != std::errc())
-        throw std::invalid_argument("invalid input");
+        nie::fatal("invalid input");
       std::cout << "SET " << result << std::endl;
       this->value_ = result;
     };
@@ -37,9 +37,9 @@ namespace nie {
       uint32_t result{};
       auto [ptr, ec]{std::from_chars(text.data(), text.data() + text.size(), result)};
       if (ptr != (text.data() + text.size()))
-        throw std::invalid_argument("extraneous input");
+        nie::fatal("extraneous input");
       if (ec != std::errc())
-        throw std::invalid_argument("invalid input");
+        nie::fatal("invalid input");
       std::cout << "SET " << result << std::endl;
       this->value_ = result;
     };
@@ -51,9 +51,9 @@ namespace nie {
       double result{};
       auto [ptr, ec]{std::from_chars(text.data(), text.data() + text.size(), result)};
       if (ptr != (text.data() + text.size()))
-        throw std::invalid_argument("extraneous input");
+        nie::fatal("extraneous input");
       if (ec != std::errc())
-        throw std::invalid_argument("invalid input");
+        nie::fatal("invalid input");
       this->value_ = result;
     };
     tuneable_list().emplace(name, std::make_unique<abstract_tuneable>(abstract_tuneable{name, description, std::move(p)}));
@@ -63,9 +63,9 @@ namespace nie {
       float result{};
       auto [ptr, ec]{std::from_chars(text.data(), text.data() + text.size(), result)};
       if (ptr != (text.data() + text.size()))
-        throw std::invalid_argument("extraneous input");
+        nie::fatal("extraneous input");
       if (ec != std::errc())
-        throw std::invalid_argument("invalid input");
+        nie::fatal("invalid input");
       this->value_ = result;
     };
     tuneable_list().emplace(name, std::make_unique<abstract_tuneable>(abstract_tuneable{name, description, std::move(p)}));
@@ -77,7 +77,7 @@ namespace nie {
       else if (text == "false")
         this->value_ = false;
       else
-        nie::fatal();
+        nie::fatal(NIE_HERE);
     };
     tuneable_list().emplace(name, std::make_unique<abstract_tuneable>(abstract_tuneable{name, description, std::move(p)}));
   }

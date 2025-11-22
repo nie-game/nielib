@@ -30,8 +30,7 @@ template <> struct std::formatter<nie::source_location, char> {
     auto it = ctx.begin();
     if (it == ctx.end())
       return it;
-    if (*it != '}')
-      throw std::format_error("Invalid format args for source_location.");
+    assert(*it == '}');
     return it;
   }
   template <class FmtContext> FmtContext::iterator format(const nie::source_location& a, FmtContext& ctx) const {

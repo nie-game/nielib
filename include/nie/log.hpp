@@ -345,7 +345,7 @@ namespace nie {
     case internal:
       return "intl"sv;
     }
-    nie::fatal();
+    nie::fatal(NIE_HERE);
   }
   template <string_literal message> struct log_message {
     static inline const bool cookie = true;

@@ -48,9 +48,6 @@ namespace nie {
     nie::fatal(ec.message(), NIE_HERE);
     return 42;
   }
-  static constexpr int to_exception(std::error_code ec) {
-    throw std::system_error(ec);
-  }
 
 #ifdef NIE_DEBUG
 #define NIE_UNREACHABLE nie::fatal("Unreachable reached", NIE_HERE)
@@ -72,7 +69,7 @@ namespace nie {
 #define ETHROW(name, expr)                                                                                                                 \
   auto name##_ec = expr;                                                                                                                   \
   if (!name##_ec) [[unlikely]]                                                                                                             \
-    throw std::system_error{std::move(name##_ec.error())};                                                                                 \
+    nie::fatal(std::move(name##_ec.error()));                                                                                              \
   auto name = std::move(name##_ec.value());
 
 #define CO_EAUTO(name, expr)                                                                                                               \

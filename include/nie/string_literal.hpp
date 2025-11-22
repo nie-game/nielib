@@ -10,7 +10,7 @@
 
 namespace nie {
   struct string;
-  template <size_t N> struct [[clang::type_visibility("default"), gnu::visibility("hidden")]] string_literal {
+  template <size_t N> struct /*[[clang::type_visibility("default"), gnu::visibility("hidden")]]*/ string_literal {
     constexpr string_literal(const char (&str)[N]) {
       std::copy_n(str, N, value);
     }
@@ -184,8 +184,7 @@ template <> struct std::formatter<nie::string, char> {
     auto it = ctx.begin();
     if (it == ctx.end())
       return it;
-    if (*it != '}')
-      throw std::format_error("Invalid format args for nie::string.");
+    assert(*it == '}');
     return it;
   }
   template <class FmtContext> FmtContext::iterator format(const nie::string& a, FmtContext& ctx) const {
