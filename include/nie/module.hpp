@@ -20,7 +20,7 @@ namespace nie {
     std::string_view name;
     uint64_t major = uint64_t(-1LL);
     uint64_t minor = uint64_t(-1LL);
-    auto operator<=>(const dependency_info& o) const noexcept {
+    inline auto operator<=>(const dependency_info& o) const noexcept {
       if (name != o.name)
         return name <=> o.name;
       if (major != o.major)
@@ -44,7 +44,7 @@ namespace nie {
     uint64_t module_version = NIE_MODULE_REFERENCE_VERSION;
     virtual void fatal(const char*) noexcept = 0;
     virtual void error(const char*) noexcept = 0;
-    /* Until here. After that you can change if you life, just make sure to do stuff right or change module_version */
+    /* Until here. After that you can change if you like, just make sure to do stuff right or change module_version */
     uint64_t minor_version = NIE_MODULE_MINOR_VERSION;
     std::span<service_description*> services;
     std::span<base_dependency*> base_dependencies;

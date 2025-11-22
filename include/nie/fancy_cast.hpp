@@ -69,7 +69,7 @@ namespace nie {
 
   private:
     [[gnu::const]] inline virtual void* fancy_cast(fancy_interface* i, nie::source_location) override {
-      assert(false);
+      nie::fatal();
       return nullptr;
     }
     static consteval size_t fancy_cast_slot_count() {
