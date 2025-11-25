@@ -30,8 +30,6 @@ function nielib_data()
   add_includedirs("include/", {public = true})
   add_headerfiles("include/(**)", {public = true})
   add_defines("NIELIB_FULL", {public = true})
-  add_cxflags("-fasynchronous-unwind-tables", {public = true})
-  add_ldflags("-fasynchronous-unwind-tables", {public = true})
   add_packages("capnproto")
 
   add_defines("GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true, force = true})
@@ -86,6 +84,24 @@ function nielib_data()
     else
       add_cxflags("-march=native", {public = true, force = true})
       add_ldflags("-march=native", {public = true, force = true})
+      add_cxflags("-fno-exceptions", {public = true, force = true})
+      add_ldflags("-fno-exceptions", {public = true, force = true})
+      add_shflags("-fno-exceptions", {public = true, force = true})
+      add_cxflags("-fno-asynchronous-unwind-tables", {public = true, force = true})
+      add_ldflags("-fno-asynchronous-unwind-tables", {public = true, force = true})
+      add_shflags("-fno-asynchronous-unwind-tables", {public = true, force = true})
+      add_cxflags("-fno-unwind-tables", {public = true, force = true})
+      add_ldflags("-fno-unwind-tables", {public = true, force = true})
+      add_shflags("-fno-unwind-tables", {public = true, force = true})
+      add_cxflags("-flto=thin", {public = true, force = true})
+      add_ldflags("-flto=thin", {public = true, force = true})
+      add_shflags("-flto=thin", {public = true, force = true})
+      add_cxflags("-fstrict-vtable-pointers", {public = true, force = true})
+      add_ldflags("-fstrict-vtable-pointers", {public = true, force = true})
+      add_shflags("-fstrict-vtable-pointers", {public = true, force = true})
+      add_cxflags("-fno-force-dwarf-frame", {public = true, force = true})
+      add_ldflags("-fno-force-dwarf-frame", {public = true, force = true})
+      add_shflags("-fno-force-dwarf-frame", {public = true, force = true})
     end
     add_cxflags("-fno-rtti", {public = true})
   elseif is_os("windows") then
@@ -145,6 +161,11 @@ do
     add_cxflags("-fsanitize=thread", {public = true})
     add_shflags("-fsanitize=thread", {public = true})
     add_ldflags("-fsanitize=thread", {public = true})
+  end
+  if false and is_mode("debug") then
+    add_cxflags("-fsanitize=type", {public = true})
+    add_shflags("-fsanitize=type", {public = true})
+    add_ldflags("-fsanitize=type", {public = true})
   end
 end
 target_end()

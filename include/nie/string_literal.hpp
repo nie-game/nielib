@@ -129,6 +129,11 @@ namespace nie {
         return "";
       return data_->text();
     }
+    [[gnu::const]] inline const char* c_str() const {
+      if (!data_)
+        return nullptr;
+      return data_->text().data(); // Bad Invariant: null terminated.
+    }
     inline bool operator==(const string& other) const {
       return data_ == other.data_;
     }

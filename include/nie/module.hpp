@@ -9,13 +9,6 @@
 
 namespace nie {
   enum module_load_error { success = 0, invalid_provided_size };
-  struct service {
-    virtual std::span<void*> provided() noexcept = 0;
-    virtual std::span<void*> depends_one() noexcept = 0;
-    virtual std::span<std::span<void*>> depends_any() noexcept = 0;
-    virtual nie::errorable<void> init() noexcept = 0;
-    virtual void destroy() noexcept = 0;
-  };
   struct dependency_info {
     std::string_view name;
     uint64_t major = uint64_t(-1LL);
@@ -28,15 +21,24 @@ namespace nie {
       return minor <=> o.minor;
     }
   };
-  struct service_description {
-    virtual std::span<dependency_info> provides() noexcept = 0;
-    virtual std::span<dependency_info> depends_one() noexcept = 0;
-    virtual std::span<dependency_info> depends_any() noexcept = 0;
-    virtual nie::errorable<service*> instantiate() noexcept = 0;
-  };
   struct base_dependency {
     void* data;
+    nie::string filler;
     dependency_info info;
+  };
+  struct service {
+    virtual std::span<void*> provided() noexcept = 0;
+    virtual std::span<base_dependency*> depends_one() noexcept = 0;
+    virtual std::span<std::span<std::pair<nie::string, void*>>*> depends_any() noexcept = 0;
+    virtual nie::errorable<void> init() noexcept = 0;
+    virtual void destroy() noexcept = 0;
+  };
+  struct service_description {
+    virtual nie::string name() noexcept = 0;
+    virtual std::span<const dependency_info> provides() noexcept = 0;
+    virtual std::span<const dependency_info> depends_one() noexcept = 0;
+    virtual std::span<const dependency_info> depends_any() noexcept = 0;
+    virtual nie::errorable<service*> instantiate() noexcept = 0;
   };
 
   /* Keep the following lines to preserve binary compatibility */
