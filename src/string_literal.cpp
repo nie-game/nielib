@@ -10,10 +10,6 @@
 namespace nie {
   using namespace std::literals;
 
-  namespace {
-    nie::logger<"nie", "string_literal"> log;
-  } // namespace
-
   struct dynamic_string_data final : string_data {
     std::string t;
     dynamic_string_data(std::string t) : t(std::move(t)) {}

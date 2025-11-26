@@ -490,13 +490,7 @@ namespace nie {
             log_info<T>::format(ss, arg);
           };
           (m(args), ...);
-          if constexpr ((level == level_e::fatal)) {
-            write_log_file(
-                std::format("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str()));
-            std::println("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str());
-            std::cout << std::endl;
-            nie::fatal(std::format("{}: {}", dotted<area..., message>(), ss.str()));
-          } else {
+          {
             write_log_file(
                 std::format("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str()));
             std::println("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str());

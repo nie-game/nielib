@@ -23,16 +23,24 @@ inline std::error_code make_error_code(T e) noexcept {
   return std::error_code(static_cast<int>(e), nie_error_database<T>::filtered_category);
 }
 
-#define NIE_ERROR(accessor)                                                                                                                \
-  template <> struct nie_error_database<accessor> {                                                                                        \
+#define NIE_ERROR(accessor, name)                                                                                                          \
+  template <> struct nie_error_database<accessor::name> {                                                                                  \
     using good = void;                                                                                                                     \
     inline static std::vector<std::pair<int, std::string_view>>& ranger() {                                                                \
       static std::vector<std::pair<int, std::string_view>> ret;                                                                            \
-      for (auto [v, n] : magic_enum::enum_entries<accessor>())                                                                             \
+      for (auto [v, n] : magic_enum::enum_entries<accessor::name>())                                                                       \
         ret.emplace_back(static_cast<int>(v), n);                                                                                          \
       return ret;                                                                                                                          \
     }                                                                                                                                      \
-    inline static std::error_category& filtered_category = nie::filter_error_category(#accessor, ranger());                                \
-  };
+    inline static std::error_category& filtered_category = nie::filter_error_category(#accessor "::" #name, ranger());                     \
+  };                                                                                                                                       \
+  namespace std {                                                                                                                          \
+    template <> struct is_error_code_enum<accessor::name> : public true_type {};                                                           \
+  }                                                                                                                                        \
+  namespace accessor {                                                                                                                     \
+    inline std::error_code make_error_code(name e) noexcept {                                                                              \
+      return std::error_code(static_cast<int>(e), nie_error_database<name>::filtered_category);                                            \
+    }                                                                                                                                      \
+  }
 
 #endif // NIE_ERROR_HPP

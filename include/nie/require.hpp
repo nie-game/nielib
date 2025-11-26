@@ -17,7 +17,7 @@ namespace nie {
   inline void require(bool is_good, std::string message, nie::source_location location = nie::source_location::current()) {
     require(is_good, std::string_view(message), location);
   };
-
+#define NIE_ASSERT(cond) nie::require(!!(cond), std::string_view(#cond), NIE_HERE)
 } // namespace nie
 
 #endif // NIE_REQUIRE_HPP

@@ -47,11 +47,12 @@ function nielib_data()
     add_defines("NIE_EXPORT=[[gnu::visibility(\"default\")]]", {public = true})
   end
 
+if not is_mode("debug")then
   add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
   add_ldflags("-Wl,--gc-sections", {public = true, force = true})
   add_shflags("-Wl,--gc-sections", {public = true, force = true})
   add_ldflags("-Wl,--exclude-libs,ALL", {public = true, force = true})
-  add_shflags("-Wl,--exclude-libs,ALL", {public = true, force = true})
+  add_shflags("-Wl,--exclude-libs,ALL", {public = true, force = true})end
 
   add_cxxflags("-Werror=inconsistent-missing-override", {public = true, force = true})
   add_cxflags("-fuse-ld=lld", "-Werror=move", "-Werror=unused-result", "-Werror=return-type", "-Werror=switch",
@@ -156,6 +157,11 @@ do
     add_cxflags("-fsanitize=address", {public = true})
     add_shflags("-fsanitize=address", {public = true})
     add_ldflags("-fsanitize=address", {public = true})
+  end
+  if false and is_mode("debug") then
+    add_cxflags("-fsanitize=undefined", {public = true})
+    add_shflags("-fsanitize=undefined", {public = true})
+    add_ldflags("-fsanitize=undefined", {public = true})
   end
   if false and is_mode("debug") then
     add_cxflags("-fsanitize=thread", {public = true})

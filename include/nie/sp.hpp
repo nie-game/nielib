@@ -68,6 +68,10 @@ namespace nie {
   // requires(std::is_base_of_v<ref_cnt_interface, T>)
   struct [[clang::trivial_abi]] sp {
     using element_type = T;
+    template <typename U, typename... Args>
+      requires(std::is_base_of_v<ref_cnt_interface, U>)
+    friend sp<U> inline make_sp(Args&&... args) noexcept;
+    template <typename U, typename A, typename... Args> friend sp<U> inline allocate_sp(const A& alloc, Args&&... args) noexcept;
 
     constexpr sp() noexcept : ptr_(nullptr) {}
     constexpr sp(std::nullptr_t) noexcept : ptr_(nullptr) {}
@@ -79,10 +83,6 @@ namespace nie {
     inline sp(sp<T>&& that) : ptr_(that.release()) {}
     template <typename U, typename = typename std::enable_if<std::is_convertible<U*, T*>::value>::type>
     inline sp(sp<U>&& that) noexcept : ptr_(that.release()) {}
-
-    explicit inline sp(T* obj) noexcept : ptr_(obj) {
-      assert(obj->unique());
-    }
 
     explicit inline sp(unsafe, T* obj) noexcept : ptr_(obj) {}
 
@@ -160,7 +160,14 @@ namespace nie {
 
     using is_trivially_relocatable = std::true_type;
 
+    static inline sp make(T* obj) noexcept {
+      return sp(obj);
+    }
+
   private:
+    explicit inline sp(T* obj) noexcept : ptr_(obj) {
+      assert(obj->unique());
+    }
     T* ptr_ = nullptr;
   };
 
