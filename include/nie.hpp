@@ -82,15 +82,16 @@ namespace nie {
     co_return std::unexpected{std::move(name.error())};
 
 #define ESET(name, expr)                                                                                                                   \
-  auto name##_ec = expr;                                                                                                                   \
-  if (!name##_ec) [[unlikely]]                                                                                                             \
+  if (auto name##_ec = expr; !name##_ec) [[unlikely]]                                                                                      \
     return std::unexpected{std::move(name##_ec.error())};                                                                                  \
-  name = std::move(name##_ec.value());
+  else                                                                                                                                     \
+    name = std::move(name##_ec.value());
 
 #define CO_ESET(name, expr)                                                                                                                \
-  name = expr;                                                                                                                             \
-  if (!name) [[unlikely]]                                                                                                                  \
-    co_return std::unexpected{std::move(name.error())};
+  if (auto name##_ec = expr; !name##_ec) [[unlikely]]                                                                                      \
+    co_return std::unexpected{std::move(name##_ec.error())};                                                                               \
+  else                                                                                                                                     \
+    name = std::move(name##_ec.value());
 
 } // namespace nie
 
