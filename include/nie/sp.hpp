@@ -87,6 +87,7 @@ namespace nie {
     explicit inline sp(unsafe, T* obj) noexcept : ptr_(obj) {}
 
     inline ~sp() noexcept {
+      assert(size_t(this) > 0x100);
       safe_unref(ptr_);
 #ifndef NDEBUG
       ptr_ = nullptr;

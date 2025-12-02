@@ -55,31 +55,35 @@ namespace nie {
 #define NIE_UNREACHABLE __builtin_unreachable()
 #endif
 
-  // #define EAUTO(name, expr) \
-  //   auto name = expr; \
-  //   if (!name) [[unlikely]] \
-  //     return std::unexpected{std::move(name.error())};
-
 #define EVAR(name, expr)                                                                                                                   \
   auto name##_ec = expr;                                                                                                                   \
   if (!name##_ec) [[unlikely]]                                                                                                             \
     return std::unexpected{std::move(name##_ec.error())};                                                                                  \
   auto name = std::move(name##_ec.value());
 
+#define CO_EVAR(name, expr)                                                                                                                \
+  auto name##_ec = expr;                                                                                                                   \
+  if (!name##_ec) [[unlikely]]                                                                                                             \
+    co_return std::unexpected{std::move(name##_ec.error())};                                                                               \
+  auto name = std::move(name##_ec.value());
+
 #define EVOID(expr)                                                                                                                        \
   if (auto ec = expr; !ec) [[unlikely]]                                                                                                    \
     return std::unexpected{std::move(ec.error())};
+
+#define CO_EVOID(expr)                                                                                                                     \
+  if (auto ec = expr; !ec) [[unlikely]]                                                                                                    \
+    co_return std::unexpected{std::move(ec.error())};
+
+#define ETHROWVOID(expr)                                                                                                                   \
+  if (auto ec = expr; !ec) [[unlikely]]                                                                                                    \
+    nie::fatal(std::move(ec.error()));
 
 #define ETHROW(name, expr)                                                                                                                 \
   auto name##_ec = expr;                                                                                                                   \
   if (!name##_ec) [[unlikely]]                                                                                                             \
     nie::fatal(std::move(name##_ec.error()));                                                                                              \
   auto name = std::move(name##_ec.value());
-
-#define CO_EAUTO(name, expr)                                                                                                               \
-  auto name = expr;                                                                                                                        \
-  if (!name) [[unlikely]]                                                                                                                  \
-    co_return std::unexpected{std::move(name.error())};
 
 #define ESET(name, expr)                                                                                                                   \
   if (auto name##_ec = expr; !name##_ec) [[unlikely]]                                                                                      \
