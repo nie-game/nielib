@@ -12,7 +12,7 @@ namespace nie {
     virtual void ref() const noexcept = 0;
     virtual void unref() const noexcept = 0;
     virtual bool unique() const noexcept = 0;
-    inline virtual void destruct() noexcept = 0;
+    virtual void destruct() noexcept = 0;
   };
   template <typename T>
   // requires(std::is_base_of_v<ref_cnt_interface, T>)
@@ -234,7 +234,7 @@ namespace nie {
   template <typename T> struct is_sp<nie::sp<T>> : std::true_type {};
 
   template <typename D, typename S>
-  std::sp<D> fancy_cast(const nie::sp<S>& s, nie::source_location location = nie::source_location::current()) {
+  nie::sp<D> fancy_cast(const nie::sp<S>& s, nie::source_location location = nie::source_location::current()) {
     if (s) {
       D* p = fancy_cast<D>(s.get(), location);
       if (p)
@@ -245,6 +245,20 @@ namespace nie {
       return {};
   }
 } // namespace nie
+
+#define NIE_INHERIT_SP(base)                                                                                                               \
+  void ref() const noexcept override {                                                                                                     \
+    return static_cast<const base*>(this)->ref();                                                                                          \
+  }                                                                                                                                        \
+  void unref() const noexcept override {                                                                                                   \
+    return static_cast<const base*>(this)->unref();                                                                                        \
+  }                                                                                                                                        \
+  bool unique() const noexcept override {                                                                                                  \
+    return static_cast<const base*>(this)->unique();                                                                                       \
+  }                                                                                                                                        \
+  void destruct() noexcept override {                                                                                                      \
+    return static_cast<base*>(this)->destruct();                                                                                           \
+  }
 
 namespace std {
   template <typename T> struct hash<nie::sp<T>> {
