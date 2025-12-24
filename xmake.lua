@@ -15,7 +15,7 @@ tribute("short_alloc", "MIT", "https://howardhinnant.github.io/stack_alloc.html"
 tribute("expected", "CC0", "http://tl.tartanllama.xyz/")
 
 add_requires("magic_enum")
-add_requires("capnproto 1.1.0", {debug = true})
+add_requires("capnproto 1.1.0")
 
 function nielib_data()
   add_packages("stack_alloc")
