@@ -1,13 +1,14 @@
 #ifndef NIE_ALLOCATOR_HPP
 #define NIE_ALLOCATOR_HPP
 
+#include "source_location.hpp"
 #include "sp.hpp"
 #include <memory>
 
 namespace nie {
   struct allocator_interface : ref_cnt_interface {
     virtual ~allocator_interface() = default;
-    virtual char* allocate(std::size_t) noexcept = 0;
+    virtual char* allocate(std::size_t, nie::source_location location) noexcept = 0;
     virtual void deallocate(char*, std::size_t) noexcept = 0;
     virtual void verify_empty() noexcept = 0;
   };
@@ -26,13 +27,13 @@ namespace nie {
     template <class U> struct rebind {
       using other = allocator<U>;
     };
-    inline T* allocate(std::size_t n) {
+    inline T* allocate(std::size_t n, nie::source_location location = nie::source_location::current()) {
       static_assert(
           (std::alignment_of_v<T> == 1) || (std::alignment_of_v<T> == 2) || (std::alignment_of_v<T> == 4) || (std::alignment_of_v<T> == 8));
       assert(!!*this);
       assert(!!allocator_);
       assert(!!n);
-      auto ret = reinterpret_cast<T*>(allocator_->allocate(sizeof(T) * n));
+      auto ret = reinterpret_cast<T*>(allocator_->allocate(sizeof(T) * n, location));
       assert(ret);
       assert((std::size_t(ret) % std::alignment_of_v<T>) == 0);
       return ret;
@@ -62,10 +63,11 @@ namespace nie {
     std::size_t n;
     nie::sp<allocator_interface> allocator_;
   };
-  inline void* anonymous_allocate(nie::sp<allocator_interface> ctx, std::size_t n) noexcept {
+  inline void* anonymous_allocate(
+      nie::sp<allocator_interface> ctx, std::size_t n, nie::source_location location = nie::source_location::current()) noexcept {
     assert(!!ctx);
     auto ctxp = ctx.get();
-    auto dptr = ctxp->allocate(n + sizeof(allocation_data));
+    auto dptr = ctxp->allocate(n + sizeof(allocation_data), location);
     auto w = new (dptr) allocation_data{n, std::move(ctx)};
     assert(!!w->allocator_);
     auto ptr = w + 1;
@@ -112,8 +114,9 @@ namespace nie {
     }
   };
   template <typename T> using unique_ptr = std::unique_ptr<T, anonymous_deleter>;
-  template <typename T, typename... Args> inline unique_ptr<T> allocate_unique(const nie::allocator<T>& alloc, Args&&... args) {
-    auto ptr = anonymous_allocate(alloc.arena(), sizeof(T));
+  template <typename T, nie::source_location location, typename... Args>
+  inline unique_ptr<T> allocate_unique(const nie::allocator<T>& alloc, Args&&... args) {
+    auto ptr = anonymous_allocate(alloc.arena(), sizeof(T), location);
     return {new (ptr) T(std::forward<Args>(args)...), &anonymous_deleter_impl<T>::instance};
   }
 } // namespace nie

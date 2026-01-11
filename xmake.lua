@@ -158,6 +158,11 @@ do
     add_shflags("-fsanitize=address", {public = true})
     add_ldflags("-fsanitize=address", {public = true})
   end
+  if true and is_mode("debug") then
+    add_cxflags("-fsanitize=leak", {public = true})
+    add_shflags("-fsanitize=leak", {public = true})
+    add_ldflags("-fsanitize=leak", {public = true})
+  end
   if false and is_mode("debug") then
     add_cxflags("-fsanitize=undefined", {public = true})
     add_shflags("-fsanitize=undefined", {public = true})

@@ -110,7 +110,7 @@ namespace nie {
   }
   log_buffer* crashdump_buffer = new log_buffer;
   std::span<char> crashdump_data() {
-    nie::require(crashdump_buffer);
+    nie::require(crashdump_buffer, "Bad crashdump_buffer"sv, NIE_HERE);
     return std::span<char>{crashdump_buffer->data}.subspan(sizeof(log_frame_t));
   }
   void set_crashdump_data(size_t size) {
@@ -169,12 +169,12 @@ namespace nie {
     std::hash<const char*> file_hash;
     std::hash<std::uint_least32_t> line_hash;
     std::hash<std::uint_least32_t> column_hash;
-    inline size_t operator()(std::source_location l) const {
+    inline size_t operator()(nie::source_location l) const {
       return function_hash(l.function_name()) ^ file_hash(l.file_name()) ^ line_hash(l.line()) ^ column_hash(l.column());
     }
   };
   struct l_equal {
-    inline bool operator()(std::source_location a, std::source_location b) const {
+    inline bool operator()(nie::source_location a, nie::source_location b) const {
       return (a.function_name() == b.function_name()) && (a.file_name() == b.file_name()) && (a.line() == b.line()) &&
              (a.column() == b.column());
     }
@@ -193,25 +193,6 @@ namespace nie {
     nie::logger<>{}.internal<"string_cache">("index"_log = size_t(s.ptr()), "data"_log = s());
     set.insert(s);
     return;
-  }
-  NIE_EXPORT uint32_t lookup_source_location(std::source_location l) {
-    static std::atomic<uint32_t> ctr = 0;
-    static std::shared_mutex mtx;
-    static std::unordered_map<std::source_location, uint32_t, l_hash, l_equal> map;
-    {
-      std::shared_lock lock(mtx);
-      if (map.contains(l))
-        return map.at(l);
-    }
-    auto idx = ctr++;
-    std::string_view funcn = l.function_name();
-    nie::logger<>{}.info<"source_location">(
-        "index"_log = idx, "function_name"_log = funcn, "file_name"_log = l.file_name(), "line"_log = l.line());
-    std::unique_lock lock(mtx);
-    if (map.contains(l))
-      return map.at(l);
-    map.emplace(l, idx);
-    return idx;
   }
   NIE_EXPORT void init_log() {
     atexit([] {

@@ -3,6 +3,7 @@
 
 #include "function_ref.hpp"
 #include "require.hpp"
+#include "source_location.hpp"
 #include "startup.hpp"
 #include "string_literal.hpp"
 
@@ -13,7 +14,6 @@
 #include <iostream>
 #include <nie.hpp>
 #include <print>
-#include <source_location>
 #include <span>
 #include <sstream>
 
@@ -287,15 +287,14 @@ namespace nie {
       ss << std::format("{:#x}", size_t(typename T::NativeType(v.value)));
     }
   };
-  NIE_EXPORT uint32_t lookup_source_location(std::source_location);
-  template <nie::string_literal a> struct log_info<log_param<a, std::source_location>> {
+  template <nie::string_literal a> struct log_info<log_param<a, nie::source_location>> {
     static constexpr auto name = "source_location"_lit;
     static constexpr size_t size = 8;
 
-    inline static void write(auto& logger, const log_param<a, std::source_location>& v) {
-      logger.template write_int<uint64_t>(lookup_source_location(v.value));
+    inline static void write(auto& logger, const log_param<a, nie::source_location>& v) {
+      logger.template write_int<uint64_t>(std::bit_cast<size_t>(v.value.impl));
     }
-    inline static void format(std::stringstream& ss, const log_param<a, std::source_location>& v) {
+    inline static void format(std::stringstream& ss, const log_param<a, nie::source_location>& v) {
       ss << std::format("{}", v.value);
     }
   };
@@ -442,7 +441,7 @@ namespace nie {
       }
 
       log_cookie cookie;
-      nie::require(len < 65536);
+      nie::require(len < 65536, "Log message too long"sv, NIE_HERE);
       auto frame = log_frame(len, type, now, cookie);
       if (frame) [[likely]] {
         struct block_log {
@@ -473,12 +472,14 @@ namespace nie {
 #endif
         if constexpr (level != level_e::internal) {
           if (frame) {
+            /*
 #ifndef NDEBUG
             if (!log_message_disable<msg_data>::init_cookie) {
               std::println("Init Cookie Error");
               abort();
             }
 #endif
+*/
           }
           std::stringstream ss;
           bool first = true;
@@ -500,10 +501,10 @@ namespace nie {
     }
   };
 } // namespace nie
-inline void bleh(std::source_location location = std::source_location::current()) {
+inline void bleh(nie::source_location location = nie::source_location::current()) {
   nie::logger<>{}.trace<"bleh">("location"_log = location);
 }
-template <typename T> inline T bleh(T&& t, std::source_location location = std::source_location::current()) {
+template <typename T> inline T bleh(T&& t, nie::source_location location = nie::source_location::current()) {
   nie::logger<>{}.trace<"bleh">("location"_log = location);
   return t;
 }

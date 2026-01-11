@@ -64,12 +64,12 @@ namespace nie {
     }
     inline T& operator*() {
       auto p = data;
-      nie::require(p);
+      nie::require(p, "Assertion failed"sv, NIE_HERE);
       return *static_cast<T*>(p);
     }
     inline T* operator->() {
       auto p = data;
-      nie::require(p);
+      nie::require(p, "Assertion failed"sv, NIE_HERE);
       return static_cast<T*>(p);
     }
   };
