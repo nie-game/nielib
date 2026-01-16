@@ -1,8 +1,9 @@
 #ifndef NIE_FANCY_CAST_HPP
 #define NIE_FANCY_CAST_HPP
 
-#include "../source_location.hpp"
+#include "nie.hpp"
 #include "require.hpp"
+#include "source_location.hpp"
 #include "startup.hpp"
 #include "string_literal.hpp"
 #include <array>
@@ -18,12 +19,10 @@
 #include <string_view>
 
 namespace nie {
-  [[noreturn]] void fatal(std::string_view expletive, nie::source_location location);
-
   struct fancy_interface {
-    virtual ~fancy_interface() noexcept = default;
-    [[gnu::const]] virtual std::string_view name() const noexcept = 0;
-    virtual std::span<fancy_interface* const> variations() const noexcept = 0;
+    virtual ~fancy_interface() = default;
+    [[gnu::const]] virtual std::string_view name() const = 0;
+    virtual std::span<fancy_interface* const> variations() const = 0;
   };
 
   struct is_fancy;
@@ -35,54 +34,55 @@ namespace nie {
 
   template <fancy_class... Parents> struct fancy_inherit;
   template <typename T, string_literal name_t, fancy_class... Parents> struct fancy;
-  template <typename D> D* fancy_cast(is_fancy* s, nie::source_location location = nie::source_location::current()) noexcept;
+  template <typename D> D* fancy_cast(is_fancy* s, nie::source_location location = nie::source_location::current());
 
   struct is_fancy {
     template <fancy_class... FParents> friend struct fancy_inherit;
     template <typename FT, string_literal Fname_t, fancy_class... FParents> friend struct fancy;
-    template <typename D> friend D* fancy_cast(is_fancy* s, nie::source_location location) noexcept;
+    template <typename D> friend D* fancy_cast(is_fancy* s, nie::source_location location);
 
-    virtual ~is_fancy() noexcept = default;
-    [[gnu::const]] virtual fancy_interface* fancy_self() const noexcept = 0;
+    virtual ~is_fancy() = default;
+    [[gnu::const]] virtual fancy_interface* fancy_self() const = 0;
 
-    bool operator==(const is_fancy& o) const noexcept {
+    bool operator==(const is_fancy& o) const {
       return fancy_self() == o.fancy_self();
     }
 
   private:
-    [[gnu::const]] virtual void* fancy_cast(fancy_interface*) noexcept = 0;
-    virtual void fancy_debug(fancy_interface* i) noexcept = 0;
+    [[gnu::const]] virtual void* fancy_cast(fancy_interface*, nie::source_location) = 0;
+    virtual void fancy_debug(fancy_interface* i) = 0;
   };
 
   template <fancy_class Parent> struct fancy_inherit<Parent> : Parent {
     template <fancy_class... FParents> friend struct fancy_inherit;
     template <typename FT, string_literal Fname_t, fancy_class... FParents> friend struct fancy;
 
-    template <typename... Args> inline fancy_inherit(Args&&... args) : Parent(std::forward<Args>(args)...) {}
+    template <typename... Args> fancy_inherit(Args&&... args) : Parent(std::forward<Args>(args)...) {}
   };
   template <> struct fancy_inherit<> : is_fancy {
     template <fancy_class... FParents> friend struct fancy_inherit;
     template <typename FT, string_literal Fname_t, fancy_class... FParents> friend struct fancy;
 
-    virtual ~fancy_inherit() noexcept = default;
-    [[gnu::const]] inline is_fancy* fancy_base() noexcept {
+    virtual ~fancy_inherit() = default;
+    [[gnu::const]] inline is_fancy* fancy_base() {
       return this;
     }
 
   private:
-    [[gnu::const]] inline virtual void* fancy_cast(fancy_interface* i) noexcept override {
+    [[gnu::const]] inline virtual void* fancy_cast(fancy_interface* i, nie::source_location) override {
+      NIE_UNREACHABLE;
       return nullptr;
     }
-    static consteval size_t fancy_cast_slot_count() noexcept {
+    static consteval size_t fancy_cast_slot_count() {
       return 0;
     }
-    static consteval std::array<fancy_interface*, 0> fancy_cast_name_slots() noexcept {
+    static consteval std::array<fancy_interface*, 0> fancy_cast_name_slots() {
       return {};
     }
-    static consteval std::array<char*, 0> fancy_cast_name_rawslots() noexcept {
+    static consteval std::array<fancy_interface*, 0> fancy_cast_name_rawslots() {
       return {};
     }
-    template <typename src, auto arriver> static consteval std::array<void* (*)(src*), 0> fancy_cast_name_converters() noexcept {
+    template <typename src, auto arriver> static consteval std::array<void* (*)(src*), 0> fancy_cast_name_converters() {
       return {};
     }
   };
@@ -92,25 +92,24 @@ namespace nie {
 
     using Parent1 = Parent;
     using Parent2 = fancy_inherit<Parents...>;
-    inline fancy_inherit() : Parent1(), Parent2() {}
+    fancy_inherit() : Parent1(), Parent2() {}
     template <typename FArg, typename... Args>
-    inline fancy_inherit(FArg&& farg, Args&&... args) : Parent1(std::forward<FArg>(farg)), Parent2(std::forward<Args>(args)...) {}
-    [[gnu::const]] inline is_fancy* fancy_base() noexcept {
+    fancy_inherit(FArg&& farg, Args&&... args) : Parent1(std::forward<FArg>(farg)), Parent2(std::forward<Args>(args)...) {}
+    [[gnu::const]] inline is_fancy* fancy_base() {
       return Parent::fancy_base();
     }
 
   private:
-    template <fancy_class T> [[gnu::const]] inline T* cast(nie::source_location location = nie::source_location::current()) noexcept {
+    template <fancy_class T> [[gnu::const]] inline T* cast(nie::source_location location = nie::source_location::current()) {
       return Parent::template cast<T>(location);
     }
-    template <fancy_class T>
-    [[gnu::const]] inline const T* cast(nie::source_location location = nie::source_location::current()) const noexcept {
+    template <fancy_class T> [[gnu::const]] inline const T* cast(nie::source_location location = nie::source_location::current()) const {
       return Parent::template cast<T>(location);
     }
-    static consteval size_t fancy_cast_slot_count() noexcept {
+    static consteval size_t fancy_cast_slot_count() {
       return Parent1::fancy_cast_slot_count() + Parent2::fancy_cast_slot_count();
     }
-    static inline std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_slots() noexcept {
+    static inline std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_slots() {
       std::array<fancy_interface*, fancy_cast_slot_count()> ret;
       size_t p1len = Parent1::fancy_cast_slot_count();
       auto p1slots = Parent1::fancy_cast_name_slots();
@@ -122,8 +121,8 @@ namespace nie {
         ret[i + p1len] = p2slots[i];
       return ret;
     }
-    static constexpr std::array<char*, fancy_cast_slot_count()> fancy_cast_name_rawslots() noexcept {
-      std::array<char*, fancy_cast_slot_count()> ret;
+    static constexpr std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_rawslots() {
+      std::array<fancy_interface*, fancy_cast_slot_count()> ret;
       size_t p1len = Parent1::fancy_cast_slot_count();
       auto p1rawslots = Parent1::fancy_cast_name_rawslots();
       size_t p2len = Parent2::fancy_cast_slot_count();
@@ -135,7 +134,7 @@ namespace nie {
       return ret;
     }
     template <typename src, auto arriver>
-    static consteval std::array<void* (*)(src*), fancy_cast_slot_count()> fancy_cast_name_converters() noexcept {
+    static consteval std::array<void* (*)(src*), fancy_cast_slot_count()> fancy_cast_name_converters() {
       std::array<void* (*)(src*), fancy_cast_slot_count()> ret;
       size_t p1len = Parent1::fancy_cast_slot_count();
       auto p1converters =
@@ -149,34 +148,21 @@ namespace nie {
         ret[i + p1len] = p2converters[i];
       return ret;
     }
-    [[gnu::const]] inline void* fancy_cast(fancy_interface* i) noexcept override {
-      void* c = Parent1::fancy_cast(i);
+    [[gnu::const]] inline void* fancy_cast(fancy_interface* i, nie::source_location location) override {
+      void* c = Parent1::fancy_cast(i, location);
       if (c)
         return c;
-      return Parent2::fancy_cast(i);
+      return Parent2::fancy_cast(i, location);
     }
   };
-  template <string_literal name_t> struct fancy_container {
-    struct my_fancy_interface final : fancy_interface {
-      [[gnu::const]] std::string_view name() const noexcept override {
-        // return {};
-        return name_t();
-      };
-      std::span<fancy_interface* const> variations_;
-      std::span<fancy_interface* const> variations() const noexcept override {
-        assert(variations_.size() != 0);
-        return variations_;
-      }
-    };
-    [[gnu::visibility("default")]] inline static my_fancy_interface fancy_interface_;
-  };
+  NIE_EXPORT extern fancy_interface* filter_fancy_interface(std::string_view, fancy_interface*);
   template <typename T> struct get_fancy_interface {
-    [[gnu::const]] static fancy_interface* fancy_name() noexcept {
-      return &fancy_container<T::fancy_name_value>::fancy_interface_;
+    [[gnu::const]] static fancy_interface* fancy_name() {
+      return T::fancy_name();
     }
   };
   template <> struct get_fancy_interface<void> {
-    [[gnu::const]] static fancy_interface* fancy_name() noexcept {
+    [[gnu::const]] static fancy_interface* fancy_name() {
       return nullptr;
     }
   };
@@ -189,23 +175,32 @@ namespace nie {
     static constexpr auto fancy_name_value = name_t;
     using fancy_type_type = T;
 
-    template <typename... Args> inline fancy(Args&&... args) : fancy_inherit<Parents...>(std::forward<Args>(args)...) {
-      nie::require(enabled);
+    template <typename... Args> fancy(Args&&... args) : fancy_inherit<Parents...>(std::forward<Args>(args)...) {
       for (size_t j = 0; j < fancy_cast_slot_count(); j++) {
-        nie::require(fancy_cast_name_slots_instance[j]);
+        nie::require(fancy_cast_name_slots_instance[j], "Assertion failed"sv, NIE_HERE);
         if (j)
-          nie::require(fancy_cast_name_slots_instance[j] != fancy_name());
+          nie::require(fancy_cast_name_slots_instance[j] != fancy_name(), "Assertion failed"sv, NIE_HERE);
       }
     }
-    [[gnu::const]] inline static fancy_interface* fancy_name() noexcept {
-      return &fancy_container<name_t>::fancy_interface_;
+    struct my_fancy_interface final : fancy_interface {
+      [[gnu::const]] std::string_view name() const override {
+        return name_t();
+      };
+      std::span<fancy_interface* const> variations() const override {
+        return fancy_cast_name_slots_instance;
+      }
+    };
+    inline static my_fancy_interface fancy_interface_ref_;
+    [[gnu::const]] static fancy_interface* fancy_name() {
+      assert(fancy_interface_impl_);
+      return fancy_interface_impl_;
     }
-    [[gnu::const]] fancy_interface* fancy_self() const noexcept override {
+    [[gnu::const]] fancy_interface* fancy_self() const override {
       return fancy_name();
     }
 
-    // private:
-    static consteval size_t fancy_cast_slot_count() noexcept {
+  private:
+    static consteval size_t fancy_cast_slot_count() {
       auto plen = fancy_inherit<Parents...>::fancy_cast_slot_count();
       auto prawslots = fancy_inherit<Parents...>::fancy_cast_name_rawslots();
       size_t ret = 1;
@@ -221,13 +216,13 @@ namespace nie {
       }
       return ret;
     }
-    static inline std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_slots() noexcept {
+    static inline std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_slots() {
       std::array<fancy_interface*, fancy_cast_slot_count()> ret;
       auto plen = fancy_inherit<Parents...>::fancy_cast_slot_count();
       auto prawslots = fancy_inherit<Parents...>::fancy_cast_name_rawslots();
       auto pslots = fancy_inherit<Parents...>::fancy_cast_name_slots();
-      ret[0] = &fancy_container<name_t>::fancy_interface_;
-      nie::require(ret[0]);
+      ret[0] = filter_fancy_interface(name_t(), &fancy_interface_ref_);
+      nie::require(ret[0], "Assertion failed"sv, NIE_HERE);
       size_t idx = 1;
       for (size_t i = 0; i < plen; i++) {
         bool add = true;
@@ -238,18 +233,18 @@ namespace nie {
           }
         if (add) {
           ret[idx] = pslots[i];
-          nie::require(ret[idx]);
+          nie::require(ret[idx], "Assertion failed"sv, NIE_HERE);
           idx++;
         }
       }
-      nie::require(idx == fancy_cast_slot_count());
+      nie::require(idx == fancy_cast_slot_count(), "Assertion failed"sv, NIE_HERE);
       return ret;
     }
-    static constexpr std::array<char*, fancy_cast_slot_count()> fancy_cast_name_rawslots() noexcept {
-      std::array<char*, fancy_cast_slot_count()> ret;
+    static constexpr std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_rawslots() {
+      std::array<fancy_interface*, fancy_cast_slot_count()> ret;
       auto plen = fancy_inherit<Parents...>::fancy_cast_slot_count();
       auto prawslots = fancy_inherit<Parents...>::fancy_cast_name_rawslots();
-      ret[0] = &fake_fancy_interface_;
+      ret[0] = &fancy_interface_ref_;
       size_t idx = 1;
       for (size_t i = 0; i < plen; i++) {
         bool add = true;
@@ -266,7 +261,7 @@ namespace nie {
       return ret;
     }
     template <typename src, auto arriver>
-    static consteval std::array<void* (*)(src*), fancy_cast_slot_count()> fancy_cast_name_converters() noexcept {
+    static consteval std::array<void* (*)(src*), fancy_cast_slot_count()> fancy_cast_name_converters() {
       std::array<void* (*)(src*), fancy_cast_slot_count()> ret;
       auto plen = fancy_inherit<Parents...>::fancy_cast_slot_count();
       auto prawslots = fancy_inherit<Parents...>::fancy_cast_name_rawslots();
@@ -289,18 +284,12 @@ namespace nie {
       return ret;
     }
     using fret = void* (*)(fancy*);
-    template <size_t j> static consteval fret fancy_cast_name_converters_idx() noexcept {
+    template <size_t j> static consteval fret fancy_cast_name_converters_idx() {
       return fancy_cast_name_converters<fancy, [](fancy* s) { return s; }>()[j];
     }
-    [[gnu::visibility("hidden")]] static inline auto fancy_cast_name_slots_instance = fancy_cast_name_slots();
-    static inline char fake_fancy_interface_;
-    static inline bool enabled = register_startup([] {
-      if (fancy_container<name_t>::fancy_interface_.variations_.size() == 0) {
-        assert(fancy_cast_name_slots_instance.size() != 0);
-        fancy_container<name_t>::fancy_interface_.variations_ = fancy_cast_name_slots_instance;
-      }
-    });
-    template <size_t j> inline void* fancy_cast_impl(fancy_interface* i) noexcept {
+    static inline fancy_interface* fancy_interface_impl_ = filter_fancy_interface(name_t(), &fancy_interface_ref_); //
+    static inline std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_slots_instance = fancy_cast_name_slots();
+    template <size_t j> inline void* fancy_cast_impl(fancy_interface* i) {
       if constexpr (j < fancy_cast_slot_count()) {
         if (fancy_cast_name_slots_instance[j] == i)
           return fancy_cast_name_converters_idx<j>()(this);
@@ -308,39 +297,39 @@ namespace nie {
       } else
         return nullptr;
     }
-    [[gnu::const]] void* fancy_cast(fancy_interface* i) noexcept override {
+    [[gnu::const]] void* fancy_cast(fancy_interface* i, nie::source_location location) override {
       return fancy_cast_impl<0>(i);
     }
 
   public:
-    virtual void fancy_debug(fancy_interface* i) noexcept override {
+    virtual void fancy_debug(fancy_interface* i) override {
 #if __cpp_lib_print >= 202207L
       for (size_t j = 0; j < fancy_cast_slot_count(); j++)
         std::println("Check {}=={}", fancy_cast_name_slots_instance[j], i);
 #endif
     }
   };
-  template <typename D> inline D* fancy_cast(is_fancy* s, nie::source_location location) noexcept {
+  template <typename D> inline D* fancy_cast(is_fancy* s, nie::source_location location) {
     if (reinterpret_cast<size_t>(s) < 0x100) {
       return nullptr;
     }
-    void* p = s->fancy_cast(D::fancy_name());
+    void* p = s->fancy_cast(D::fancy_name(), location);
     if (!p)
       return nullptr;
     return static_cast<D*>(p);
   }
 
-  template <typename D> D& fancy_cast(is_fancy& s, nie::source_location location = nie::source_location::current()) noexcept {
+  template <typename D> D& fancy_cast(is_fancy& s, nie::source_location location = nie::source_location::current()) {
     auto ptr = fancy_cast<D>(&s, location);
     if (!ptr)
       nie::fatal("Cast to invalid type", location);
     return *ptr;
   }
-  template <typename D> const D* fancy_cast(const is_fancy* s, nie::source_location location = nie::source_location::current()) noexcept {
+  template <typename D> const D* fancy_cast(const is_fancy* s, nie::source_location location = nie::source_location::current()) {
     return fancy_cast<const D>(const_cast<is_fancy*>(s), location);
   }
   template <typename D, typename S>
-  std::shared_ptr<D> fancy_cast(const std::shared_ptr<S>& s, nie::source_location location = nie::source_location::current()) noexcept {
+  std::shared_ptr<D> fancy_cast(const std::shared_ptr<S>& s, nie::source_location location = nie::source_location::current()) {
     if (s) {
       D* p = fancy_cast<D>(s.get(), location);
       if (p)
@@ -351,7 +340,7 @@ namespace nie {
       return {};
   }
   template <typename D, typename S>
-  std::unique_ptr<D> fancy_cast(std::unique_ptr<S> s, nie::source_location location = nie::source_location::current()) noexcept {
+  std::unique_ptr<D> fancy_cast(std::unique_ptr<S> s, nie::source_location location = nie::source_location::current()) {
     if (s) {
       D* p = fancy_cast<D>(s.get(), location);
       if (p) {
@@ -362,7 +351,7 @@ namespace nie {
     } else
       return {};
   }
-  template <typename D> const D& fancy_cast(const is_fancy& s, nie::source_location location = nie::source_location::current()) noexcept {
+  template <typename D> const D& fancy_cast(const is_fancy& s, nie::source_location location = nie::source_location::current()) {
     return fancy_cast<const D>(const_cast<is_fancy&>(s), location);
   }
 } // namespace nie
@@ -372,8 +361,9 @@ template <> struct std::formatter<nie::fancy_interface*> {
     auto it = ctx.begin();
     if (it == ctx.end())
       return it;
-    if (*it != '}')
-      throw std::format_error("Invalid format args for nie::fancy_interface*.");
+#ifdef NIELIB_FULL
+    assert(*it == '}');
+#endif
     return it;
   }
 

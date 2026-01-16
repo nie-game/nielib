@@ -5,24 +5,15 @@
 
 #include "nie/log.hpp"
 #include "nie/require.hpp"
-#include "source_location.hpp"
+#include "nie/source_location.hpp"
 #include <chrono>
 #include <expected>
 #include <functional>
 #include <memory>
 
 namespace nie {
-  struct nyi : std::exception {
-    std::string message;
-    inline nyi(nie::source_location location = nie::source_location::current()) : nyi("", location) {}
-    nyi(std::string text, nie::source_location location = nie::source_location::current());
-    inline const char* what() const noexcept {
-      return message.data();
-    }
-  };
-
   template <typename T> struct tuneable {
-    tuneable(std::string_view name, std::string_view description, T default_value);
+    NIE_EXPORT tuneable(std::string_view name, std::string_view description, T default_value);
     inline operator T() const {
       return value_;
     }
@@ -53,84 +44,18 @@ namespace nie {
   }
 
   template <typename T> using errorable = std::expected<T, std::error_code>;
+  using unexpected = std::unexpected<std::error_code>;
 
-  using std::expected;
-  using std::unexpect;
-  namespace expected_detail {
-    template <class T> using remove_const_t = typename std::remove_const<T>::type;
-    template <class T> using remove_reference_t = typename std::remove_reference<T>::type;
-    template <class T> using decay_t = typename std::decay<T>::type;
-    template <class T> struct is_expected_impl : std::false_type {};
-    template <class T, class E> struct is_expected_impl<expected<T, E>> : std::true_type {};
-    template <class T> using is_expected = is_expected_impl<decay_t<T>>;
-  } // namespace expected_detail
-  template <class Exp> using exp_t = typename expected_detail::decay_t<Exp>::value_type;
-  template <class Exp> using err_t = typename expected_detail::decay_t<Exp>::error_type;
-  template <class Exp, class Ret> using ret_t = expected<Ret, err_t<Exp>>;
-  namespace expected_detail {
-    template <bool E, class T = void> using enable_if_t = typename std::enable_if<E, T>::type;
-    template <bool B, class T, class F> using conditional_t = typename std::conditional<B, T, F>::type;
-    template <typename Fn,
-        typename... Args,
-#ifdef TL_TRAITS_LIBCXX_MEM_FN_WORKAROUND
-        typename = enable_if_t<!(is_pointer_to_non_const_member_func<Fn>::value && is_const_or_const_ref<Args...>::value)>,
-#endif
-        typename = enable_if_t<std::is_member_pointer<decay_t<Fn>>::value>,
-        int = 0>
-    constexpr auto invoke(Fn&& f, Args&&... args) noexcept(noexcept(std::mem_fn(f)(std::forward<Args>(args)...)))
-        -> decltype(std::mem_fn(f)(std::forward<Args>(args)...)) {
-      return std::mem_fn(f)(std::forward<Args>(args)...);
-    }
-
-    template <typename Fn, typename... Args, typename = enable_if_t<!std::is_member_pointer<decay_t<Fn>>::value>>
-    constexpr auto invoke(Fn&& f, Args&&... args) noexcept(noexcept(std::forward<Fn>(f)(std::forward<Args>(args)...)))
-        -> decltype(std::forward<Fn>(f)(std::forward<Args>(args)...)) {
-      return std::forward<Fn>(f)(std::forward<Args>(args)...);
-    }
-
-    // std::invoke_result from C++17
-    template <class F, class, class... Us> struct invoke_result_impl;
-
-    template <class F, class... Us>
-    struct invoke_result_impl<F, decltype(expected_detail::invoke(std::declval<F>(), std::declval<Us>()...), void()), Us...> {
-      using type = decltype(expected_detail::invoke(std::declval<F>(), std::declval<Us>()...));
-    };
-
-    template <class F, class... Us> using invoke_result = invoke_result_impl<F, void, Us...>;
-
-    template <class F, class... Us> using invoke_result_t = typename invoke_result<F, Us...>::type;
-  } // namespace expected_detail
-  template <class Exp,
-      class F,
-      class Ret = decltype(expected_detail::invoke(std::declval<F>(), *std::declval<Exp>())),
-      expected_detail::enable_if_t<!std::is_void<exp_t<Exp>>::value>* = nullptr>
-  auto and_then(Exp&& exp, F&& f) -> Ret {
-    static_assert(expected_detail::is_expected<Ret>::value, "F must return an expected");
-
-    return exp.has_value() ? expected_detail::invoke(std::forward<F>(f), *std::forward<Exp>(exp))
-                           : Ret(unexpect, std::forward<Exp>(exp).error());
+  static constexpr int to_fatal(std::error_code ec) {
+    nie::fatal(ec.message(), NIE_HERE);
+    return 42;
   }
 
-  template <class Exp,
-      class F,
-      class Ret = decltype(expected_detail::invoke(std::declval<F>())),
-      expected_detail::enable_if_t<std::is_void<exp_t<Exp>>::value>* = nullptr>
-  constexpr auto and_then(Exp&& exp, F&& f) -> Ret {
-    static_assert(expected_detail::is_expected<Ret>::value, "F must return an expected");
-
-    return exp.has_value() ? expected_detail::invoke(std::forward<F>(f)) : Ret(unexpect, std::forward<Exp>(exp).error());
-  }
-
-#ifdef NIE_DEBUG
-#define NIE_UNREACHABLE nie::fatal("Unreachable reached")
+#ifndef NDEBUG
+#define NIE_UNREACHABLE nie::fatal("Unreachable reached", NIE_HERE)
 #else
 #define NIE_UNREACHABLE __builtin_unreachable()
 #endif
-
-#define EAUTO(name, expr)                                                                                                                  \
-  auto name = expr;                                                                                                                        \
-  if (!name) [[unlikely]]                                                                                                                  \
-    return std::unexpected{std::move(name.error())};
 
 #define EVAR(name, expr)                                                                                                                   \
   auto name##_ec = expr;                                                                                                                   \
@@ -138,26 +63,41 @@ namespace nie {
     return std::unexpected{std::move(name##_ec.error())};                                                                                  \
   auto name = std::move(name##_ec.value());
 
+#define CO_EVAR(name, expr)                                                                                                                \
+  auto name##_ec = expr;                                                                                                                   \
+  if (!name##_ec) [[unlikely]]                                                                                                             \
+    co_return std::unexpected{std::move(name##_ec.error())};                                                                               \
+  auto name = std::move(name##_ec.value());
+
+#define EVOID(expr)                                                                                                                        \
+  if (auto ec = expr; !ec) [[unlikely]]                                                                                                    \
+    return std::unexpected{std::move(ec.error())};
+
+#define CO_EVOID(expr)                                                                                                                     \
+  if (auto ec = expr; !ec) [[unlikely]]                                                                                                    \
+    co_return std::unexpected{std::move(ec.error())};
+
+#define ETHROWVOID(expr)                                                                                                                   \
+  if (auto ec = expr; !ec) [[unlikely]]                                                                                                    \
+    nie::fatal(std::move(ec.error()));
+
 #define ETHROW(name, expr)                                                                                                                 \
   auto name##_ec = expr;                                                                                                                   \
   if (!name##_ec) [[unlikely]]                                                                                                             \
-    throw std::system_error{std::move(name##_ec.error())};                                                                                 \
+    nie::fatal(std::move(name##_ec.error()));                                                                                              \
   auto name = std::move(name##_ec.value());
 
-#define CO_EAUTO(name, expr)                                                                                                               \
-  auto name = expr;                                                                                                                        \
-  if (!name) [[unlikely]]                                                                                                                  \
-    co_return std::unexpected{std::move(name.error())};
-
 #define ESET(name, expr)                                                                                                                   \
-  name = expr;                                                                                                                             \
-  if (!name) [[unlikely]]                                                                                                                  \
-    return std::unexpected{std::move(name.error())};
+  if (auto name##_ec = expr; !name##_ec) [[unlikely]]                                                                                      \
+    return std::unexpected{std::move(name##_ec.error())};                                                                                  \
+  else                                                                                                                                     \
+    name = std::move(name##_ec.value());
 
 #define CO_ESET(name, expr)                                                                                                                \
-  name = expr;                                                                                                                             \
-  if (!name) [[unlikely]]                                                                                                                  \
-    co_return std::unexpected{std::move(name.error())};
+  if (auto name##_ec = expr; !name##_ec) [[unlikely]]                                                                                      \
+    co_return std::unexpected{std::move(name##_ec.error())};                                                                               \
+  else                                                                                                                                     \
+    name = std::move(name##_ec.value());
 
 } // namespace nie
 

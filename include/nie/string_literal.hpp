@@ -2,12 +2,15 @@
 #define string_LITERAL_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <format>
+#include <set>
+#include <shared_mutex>
 #include <string_view>
 
 namespace nie {
   struct string;
-  template <size_t N> struct [[clang::type_visibility("default"), gnu::visibility("hidden")]] string_literal {
+  template <size_t N> struct /*[[clang::type_visibility("default"), gnu::visibility("hidden")]]*/ string_literal {
     constexpr string_literal(const char (&str)[N]) {
       std::copy_n(str, N, value);
     }
@@ -34,43 +37,43 @@ namespace nie {
 
   template <string_literal... a> struct string_literal_cat_r;
   template <string_literal a> struct string_literal_cat_r<a> {
-    inline static constexpr string_literal<a().size() + 1> result = {a()};
+    constexpr static string_literal<a().size() + 1> result = {a()};
   };
   template <string_literal a, string_literal b> struct string_literal_cat_r<a, b> {
-    inline static constexpr string_literal<a().size() + b().size() + 1> result = {a(), b()};
+    constexpr static string_literal<a().size() + b().size() + 1> result = {a(), b()};
   };
   template <string_literal a, string_literal... b> struct string_literal_cat_r<a, b...> {
-    inline static constexpr string_literal<a().size() + string_literal_cat_r<b...>::result().size() + 1> result = {
+    constexpr static string_literal<a().size() + string_literal_cat_r<b...>::result().size() + 1> result = {
         a(), string_literal_cat_r<b...>::result()};
   };
   template <string_literal... a>
   inline constexpr string_literal<string_literal_cat_r<a...>::result().size() + 1> string_literal_cat = string_literal_cat_r<a...>::result;
 
   template <string_literal... a> struct dotted_t {
-    inline static constexpr string_literal<1> value = {{0}};
+    constexpr static string_literal<1> value = {{0}};
   };
   template <string_literal a> struct dotted_t<a> {
-    inline static constexpr auto value = a;
+    constexpr static auto value = a;
   };
   template <string_literal a, string_literal b> struct dotted_t<a, b> {
-    inline static constexpr auto value = string_literal_cat<a, ".", b>;
+    constexpr static auto value = string_literal_cat<a, ".", b>;
   };
   template <string_literal a, string_literal... b> struct dotted_t<a, b...> {
-    inline static constexpr auto value = string_literal_cat<a, ".", dotted_t<b...>::value>;
+    constexpr static auto value = string_literal_cat<a, ".", dotted_t<b...>::value>;
   };
   template <string_literal... a> inline constexpr auto dotted = dotted_t<a...>::value;
 
   template <string_literal... a> struct commad_t {
-    inline static constexpr string_literal<1> value = {{0}};
+    constexpr static string_literal<1> value = {{0}};
   };
   template <string_literal a> struct commad_t<a> {
-    inline static constexpr auto value = a;
+    constexpr static auto value = a;
   };
   template <string_literal a, string_literal b> struct commad_t<a, b> {
-    inline static constexpr auto value = string_literal_cat<a, ", ", b>;
+    constexpr static auto value = string_literal_cat<a, ", ", b>;
   };
   template <string_literal a, string_literal... b> struct commad_t<a, b...> {
-    inline static constexpr auto value = string_literal_cat<a, ", ", commad_t<b...>::value>;
+    constexpr static auto value = string_literal_cat<a, ", ", commad_t<b...>::value>;
   };
   template <string_literal... a> inline constexpr auto commad = commad_t<a...>::value;
 
@@ -115,7 +118,7 @@ namespace nie {
   struct string {
     template <nie::string_literal T> friend struct string_init;
     friend struct std::hash<string>;
-    explicit string(std::string_view);
+    NIE_EXPORT explicit string(std::string_view);
     string() = default;
     string(const string&) = default;
     string(string&&) = default;
@@ -125,6 +128,11 @@ namespace nie {
       if (!data_)
         return "";
       return data_->text();
+    }
+    [[gnu::const]] inline const char* c_str() const {
+      if (!data_)
+        return nullptr;
+      return data_->text().data(); // Bad Invariant: null terminated.
     }
     inline bool operator==(const string& other) const {
       return data_ == other.data_;
@@ -141,7 +149,7 @@ namespace nie {
     string_data const* data_ = nullptr;
   };
 
-  [[gnu::visibility("default")]] void register_literal(string_data const*);
+  NIE_EXPORT string_data const* register_literal(string_data const*);
 
   template <nie::string_literal T> struct string_init {
     struct my_string_data final : string_data {
@@ -152,9 +160,11 @@ namespace nie {
         return T();
       }
     };
-    [[gnu::visibility("default")]] inline static const my_string_data data_ = {};
     inline string operator()() {
-      return string(&data_);
+      static const my_string_data data_impl_ = {};
+      static const string_data* ptr_ = register_literal(&data_impl_);
+      assert(ptr_);
+      return string(ptr_);
     }
   };
   template <> struct string_init<""> {
@@ -179,8 +189,7 @@ template <> struct std::formatter<nie::string, char> {
     auto it = ctx.begin();
     if (it == ctx.end())
       return it;
-    if (*it != '}')
-      throw std::format_error("Invalid format args for nie::string.");
+    assert(*it == '}');
     return it;
   }
   template <class FmtContext> FmtContext::iterator format(const nie::string& a, FmtContext& ctx) const {

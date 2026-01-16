@@ -3,6 +3,7 @@
 
 #include "function_ref.hpp"
 #include "require.hpp"
+#include "source_location.hpp"
 #include "startup.hpp"
 #include "string_literal.hpp"
 
@@ -13,15 +14,8 @@
 #include <iostream>
 #include <nie.hpp>
 #include <print>
-#include <source_location>
 #include <span>
 #include <sstream>
-
-#ifndef _WIN32
-extern "C" {
-extern char __executable_start[];
-}
-#endif
 
 namespace nie {
   template <nie::string_literal a, typename T> struct log_param {
@@ -44,20 +38,33 @@ template <nie::string_literal a> constexpr auto operator""_log() -> nie::log_par
 namespace vk {
   template <typename Type> struct isVulkanHandleType;
 }
-namespace spinemarrow {
-  struct node_handle_data;
-  using node_handle = std::shared_ptr<node_handle_data>;
-} // namespace spinemarrow
 namespace nie {
-  char* log_frame(uint32_t size, uint32_t index, std::chrono::tai_clock::time_point time);
-  void write_log_file(std::string_view);
-  void add_log_disabler(std::string_view, bool*);
-  void init_log();
-
   struct log_cookie {
-    void* ptr = nullptr;
+    uint64_t data_;
   };
-  template <typename T, typename Enabler = void> struct log_info;
+
+  NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time, log_cookie& cookie);
+  NIE_EXPORT void write_log_file(std::string_view);
+  NIE_EXPORT void add_log_disabler(std::string_view, bool*);
+  NIE_EXPORT void init_log();
+  NIE_EXPORT std::span<char> crashdump_data();
+  NIE_EXPORT void set_crashdump_data(uint64_t);
+  NIE_EXPORT void iterate_frames(const nie::function_ref<void(std::span<const char>)>&);
+  constexpr size_t frame_size = 1024 * 1024 * 16;
+
+  template <typename T, typename Enabler = void> struct log_info {
+    static constexpr auto name = "invalid"_lit;
+    static constexpr size_t size = 65536;
+
+    inline static void write(auto& logger, const T& v) {
+      auto str = std::string_view("-fucked-");
+      logger.template write_int<uint32_t>(str.size());
+      logger.write(str.data(), str.size());
+    }
+    inline static void format(std::stringstream& ss, const T& v) {
+      ss << "-fucked-";
+    }
+  };
   template <typename T> struct fallback_formatter;
   template <std::formattable<char> T> struct fallback_formatter<T> {
     using valid = void;
@@ -146,8 +153,7 @@ namespace nie {
       ss << std::format("'{}'", v.value);
     }
   };
-  void register_nie_string(nie::string);
-  void register_capnp(uint64_t, const nie::function_ref<void()>&);
+  NIE_EXPORT void register_nie_string(nie::string);
   template <nie::string_literal a> struct log_info<log_param<a, nie::string>> {
     static constexpr auto name = "cached_string"_lit;
     static constexpr size_t size = 8;
@@ -281,42 +287,27 @@ namespace nie {
       ss << std::format("{:#x}", size_t(typename T::NativeType(v.value)));
     }
   };
-  uint32_t lookup_source_location(std::source_location);
-  template <nie::string_literal a> struct log_info<log_param<a, std::source_location>> {
+  template <nie::string_literal a> struct log_info<log_param<a, nie::source_location>> {
     static constexpr auto name = "source_location"_lit;
-    static constexpr size_t size = 4;
+    static constexpr size_t size = 8;
 
-    inline static void write(auto& logger, const log_param<a, std::source_location>& v) {
-      logger.template write_int<uint32_t>(lookup_source_location(v.value));
+    inline static void write(auto& logger, const log_param<a, nie::source_location>& v) {
+      logger.template write_int<uint64_t>(std::bit_cast<size_t>(v.value.impl));
     }
-    inline static void format(std::stringstream& ss, const log_param<a, std::source_location>& v) {
+    inline static void format(std::stringstream& ss, const log_param<a, nie::source_location>& v) {
       ss << std::format("{}", v.value);
     }
   };
   template <nie::string_literal a> struct log_info<log_param<a, log_cookie>> {
     static constexpr auto name = "cookie"_lit;
-    static constexpr size_t size = 4;
+    static constexpr size_t size = 8;
 
     inline static void write(auto& logger, const log_param<a, log_cookie>& v) {
-      uint32_t p = ((logger.frame != nullptr) && (v.value.ptr != nullptr))
-                       ? uint32_t(reinterpret_cast<char*>(logger.frame) - reinterpret_cast<char*>(v.value.ptr))
-                       : uint32_t(0);
+      uint64_t p = v.value.data_;
       logger.write(&p, sizeof(p));
     }
     inline static void format(std::stringstream& ss, const log_param<a, log_cookie>& v) {
-      ss << std::format("{:#x}", size_t(v.value.ptr));
-    }
-  };
-  template <nie::string_literal a> struct log_info<log_param<a, spinemarrow::node_handle>> {
-    static constexpr auto name = "node_handle"_lit;
-    static constexpr size_t size = 8;
-
-    inline static void write(auto& logger, const log_param<a, spinemarrow::node_handle>& v);
-    inline static void format(std::stringstream& ss, const log_param<a, spinemarrow::node_handle>& v) {
-      if (v.value)
-        ss << v.value->key();
-      else
-        ss << "(nil)";
+      ss << std::format("{:#x}", size_t(v.value.data_));
     }
   };
   template <typename T> struct log_name;
@@ -353,11 +344,10 @@ namespace nie {
     case internal:
       return "intl"sv;
     }
-    assert(false);
+    nie::fatal(NIE_HERE);
   }
   template <string_literal message> struct log_message {
-    static constexpr bool cookie = true;
-    inline static bool has_info = false;
+    static inline const bool cookie = true;
   };
   template <string_literal message> struct log_message_disable {
     inline static bool is_disabled = false;
@@ -366,30 +356,29 @@ namespace nie {
 
   template <string_literal... area> struct logger {
     template <string_literal message, typename... T> inline log_cookie internal(const T&... args) {
-      return do_log<level_e::internal, message, T...>(args...);
+      return flexible_log<level_e::internal, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie trace(const T&... args) {
-      return do_log<level_e::trace, message, T...>(args...);
+      return flexible_log<level_e::trace, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie debug(const T&... args) {
-      return do_log<level_e::debug, message, T...>(args...);
+      return flexible_log<level_e::debug, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie info(const T&... args) {
-      return do_log<level_e::info, message, T...>(args...);
+      return flexible_log<level_e::info, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie warn(const T&... args) {
-      return do_log<level_e::warn, message, T...>(args...);
+      return flexible_log<level_e::warn, message, T...>(args...);
     }
     template <string_literal message, typename... T> inline log_cookie error(const T&... args) {
-      return do_log<level_e::error, message, T...>(args...);
+      return flexible_log<level_e::error, message, T...>(args...);
     }
     template <string_literal message, typename... T> [[noreturn]] inline void fatal(const T&... args) {
-      do_log<level_e::fatal, message, T...>(args...);
+      flexible_log<level_e::fatal, message, T...>(args...);
       nie::fatal("fatal failed");
     }
 
-  private:
-    template <level_e level, string_literal message, typename... Args> inline log_cookie do_log(const Args&... args) {
+    template <level_e level, string_literal message, typename... Args> inline log_cookie flexible_log(const Args&... args) {
       auto now = std::chrono::tai_clock::now();
       constexpr auto msg_data = dotted<area..., message>;
       constexpr auto text = string_literal_cat<"0:",
@@ -401,32 +390,14 @@ namespace nie {
           log_name<Args>::type...,
           "::">;
       using msg = log_message<text>;
-#ifndef _WIN32
-      assert(reinterpret_cast<const char*>(&msg::cookie) >= __executable_start);
-      size_t pos = reinterpret_cast<const char*>(&msg::cookie) - __executable_start;
-#else
-      uint32_t pos = size_t(reinterpret_cast<const char*>(&msg::cookie));
-#endif
-      assert(pos <= size_t(uint32_t(-1)));
-      uint32_t index = pos;
-      if (!msg::has_info) {
-        auto d = text();
-        auto n = d.size();
-        n &= ~7ULL;
-        n += 8ULL;
-        auto frame = log_frame(n, index, {});
-        if (frame) {
-          memcpy(frame, d.data(), d.size());
-          msg::has_info = true;
-        }
-      }
+      auto type = std::bit_cast<std::size_t>(&msg::cookie);
       auto n = [&](auto& logger) {
         auto m = [&]<typename T>(const T& arg) { log_info<T>::write(logger, arg); };
         (m(args), ...);
       };
       constexpr size_t est_len = (((log_info<Args>::size + ... + 0) + 7ULL) & ~7ULL);
       size_t len = est_len;
-      /*if (est_len >= 65536) */ {
+      if (est_len >= 65536) {
         struct length_log {
           size_t length = 0;
           inline void write(void const* ptr, size_t len) {
@@ -456,11 +427,11 @@ namespace nie {
           std::println("FAT!!! [{}] {} {}: {}", now, levstr(level), dotted<area..., message>(), ss.str());
           std::cout << std::endl;
           abort();
-          return {nullptr};
+          return {0};
 #else
           std::cout << "Log Frame too fat" << std::endl;
           abort();
-          return {nullptr};
+          return {0};
 #endif
         }
         // #endif
@@ -469,7 +440,9 @@ namespace nie {
         len = ll.length;
       }
 
-      auto frame = log_frame(len, index, now);
+      log_cookie cookie;
+      nie::require(len < 65536, "Log message too long"sv, NIE_HERE);
+      auto frame = log_frame(len, type, now, cookie);
       if (frame) [[likely]] {
         struct block_log {
           size_t leftover = 0;
@@ -498,11 +471,16 @@ namespace nie {
           (!log_message_disable<msg_data>::is_disabled))
 #endif
         if constexpr (level != level_e::internal) {
-          if (frame)
+          if (frame) {
+            /*
+#ifndef NDEBUG
             if (!log_message_disable<msg_data>::init_cookie) {
               std::println("Init Cookie Error");
               abort();
             }
+#endif
+*/
+          }
           std::stringstream ss;
           bool first = true;
           auto m = [&]<typename T>(const T& arg) {
@@ -513,35 +491,20 @@ namespace nie {
             log_info<T>::format(ss, arg);
           };
           (m(args), ...);
-          if constexpr ((level == level_e::fatal)) {
-            write_log_file(std::format("[{} {:#x}] {} {}: {}", now, size_t(frame), levstr(level), dotted<area..., message>(), ss.str()));
-            std::println("[{} {:#x}] {} {}: {}", now, size_t(frame), levstr(level), dotted<area..., message>(), ss.str());
-            std::cout << std::endl;
-            nie::fatal(std::format("{}: {}", dotted<area..., message>(), ss.str()));
-          } else {
-            write_log_file(std::format("[{} {:#x}] {} {}: {}", now, size_t(frame), levstr(level), dotted<area..., message>(), ss.str()));
-            std::println("[{} {:#x}] {} {}: {}", now, size_t(frame), levstr(level), dotted<area..., message>(), ss.str());
+          {
+            write_log_file(
+                std::format("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str()));
+            std::println("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str());
           }
         }
-      return log_cookie{frame};
+      return cookie;
     }
   };
-  template <nie::string_literal a>
-  inline void log_info<log_param<a, spinemarrow::node_handle>>::write(auto& logger, const log_param<a, spinemarrow::node_handle>& v) {
-    auto ptr = v.value;
-    if (ptr) {
-      if (!ptr->logged.exchange(true)) [[unlikely]]
-        nie::logger<"spinemarrow">{}.info<"node_handle">("hash"_log = ptr->hash(), "name"_log = ptr->key());
-      logger.template write_int<uint64_t>(ptr->hash());
-    } else
-      logger.template write_int<uint64_t>(0);
-  }
-
 } // namespace nie
-inline void bleh(std::source_location location = std::source_location::current()) {
+inline void bleh(nie::source_location location = nie::source_location::current()) {
   nie::logger<>{}.trace<"bleh">("location"_log = location);
 }
-template <typename T> inline T bleh(T&& t, std::source_location location = std::source_location::current()) {
+template <typename T> inline T bleh(T&& t, nie::source_location location = nie::source_location::current()) {
   nie::logger<>{}.trace<"bleh">("location"_log = location);
   return t;
 }

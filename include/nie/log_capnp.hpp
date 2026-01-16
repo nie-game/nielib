@@ -4,6 +4,8 @@
 #include "log.hpp"
 #include <capnp/dynamic.h>
 #include <capnp/schema.h>
+#include <mutex>
+#include <set>
 
 namespace nie {
   template <typename T> struct is_dynamic : std::false_type {};
@@ -26,6 +28,8 @@ namespace nie {
     using type = typename T::Builds;
     // using well = void;
   };
+
+  NIE_EXPORT void register_capnp_me(capnp::Schema s);
 
   template <nie::string_literal a, typename T> struct log_info<log_param<a, T>, typename base<T>::well> {
     static constexpr auto name = "capnp"_lit;
@@ -97,7 +101,7 @@ namespace nie {
       }
     }
 
-    inline static capnp::Schema schema(R v) {
+    inline static capnp::StructSchema schema(R v) {
       if constexpr (is_dynamic<typename R::Reads>::value)
         return v.getSchema();
       else
@@ -106,21 +110,24 @@ namespace nie {
 
     inline static void write(auto& logger, const log_param<a, T>& v) {
       auto s = schema(v.value);
-      register_capnp(s.getProto().getId(), [&] { nie::logger<>{}.info<"capnp">("schema"_log = s.getProto()); });
+      register_capnp_me(s);
       std::span<const char> str;
       if constexpr (is_dynamic<typename R::Reads>::value) {
         using AR = capnp::AnyStruct::Reader;
         auto r = v.value.operator AR();
         auto c = r.canonicalize();
         str = std::span<const char>(reinterpret_cast<const char*>(c.begin()), reinterpret_cast<const char*>(c.end()));
+        logger.template write_int<uint64_t>(s.getProto().getId());
+        logger.template write_int<uint32_t>(str.size());
+        logger.write(str.data(), str.size());
       } else {
         R r = v.value;
         auto c = capnp::canonicalize(r);
         str = std::span<const char>(reinterpret_cast<const char*>(c.begin()), reinterpret_cast<const char*>(c.end()));
+        logger.template write_int<uint64_t>(s.getProto().getId());
+        logger.template write_int<uint32_t>(str.size());
+        logger.write(str.data(), str.size());
       }
-      logger.template write_int<uint64_t>(s.getProto().getId());
-      logger.template write_int<uint32_t>(str.size());
-      logger.write(str.data(), str.size());
     }
     inline static void format(std::stringstream& ss, const log_param<a, T>& v) {
       if constexpr (is_dynamic<typename R::Reads>::value)

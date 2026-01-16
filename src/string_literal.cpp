@@ -10,10 +10,6 @@
 namespace nie {
   using namespace std::literals;
 
-  namespace {
-    nie::logger<"nie", "string_literal"> log;
-  } // namespace
-
   struct dynamic_string_data final : string_data {
     std::string t;
     dynamic_string_data(std::string t) : t(std::move(t)) {}
@@ -52,13 +48,10 @@ namespace nie {
     cache_ptr().cache_.emplace(data_->text(), data_);
   }
 
-  [[gnu::visibility("default")]] void register_literal(string_data const* d) {
+  NIE_EXPORT string_data const* register_literal(string_data const* d) {
     std::unique_lock lock(cache_ptr().cache_mutex);
-    if (cache_ptr().cache_.contains(d->text())) {
-      log.error<"register">("duplicate"_log = d->text(), "me"_log = size_t(d), "orig"_log = size_t(cache_ptr().cache_.at(d->text())));
-    }
-    nie::require(!cache_ptr().cache_.contains(d->text()));
-    // log.trace<"register">("Registering (S) {:#X} as {}", std::bit_cast<std::size_t>(d), d->text());
-    cache_ptr().cache_.emplace(d->text(), d);
+    auto [it, _] = cache_ptr().cache_.emplace(d->text(), d);
+    assert(it->second);
+    return it->second;
   }
 } // namespace nie
