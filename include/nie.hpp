@@ -44,6 +44,8 @@ namespace nie {
   }
 
   template <typename T> using errorable = std::expected<T, std::error_code>;
+  using unexpected = std::unexpected<std::error_code>;
+
   static constexpr int to_fatal(std::error_code ec) {
     nie::fatal(ec.message(), NIE_HERE);
     return 42;
