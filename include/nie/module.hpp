@@ -5,6 +5,7 @@
 #define NIE_MODULE_MINOR_VERSION 1
 
 #include "../nie.hpp"
+#include "string.hpp"
 #include <forward_list>
 
 namespace nie {
@@ -64,12 +65,12 @@ namespace nie {
     }
     inline T& operator*() {
       auto p = data;
-      nie::require(p, "Assertion failed"sv, NIE_HERE);
+      nie::require(p, NIE_HERE);
       return *static_cast<T*>(p);
     }
     inline T* operator->() {
       auto p = data;
-      nie::require(p, "Assertion failed"sv, NIE_HERE);
+      nie::require(p, NIE_HERE);
       return static_cast<T*>(p);
     }
   };

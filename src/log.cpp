@@ -7,6 +7,7 @@
 #include <map>
 #include <mutex>
 #include <nie/log.hpp>
+#include <nie/string.hpp>
 #include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>

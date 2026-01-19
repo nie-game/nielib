@@ -41,10 +41,10 @@ namespace nie {
         ctx->current_page = std::make_unique<uint64_t[]>(eight_count);
         ctx->current_page_size = eight_count * 8;
       }
-      nie::require((ctx->current_page_offset + (n * sizeof(T))) < ctx->current_page_size, "Assertion failed"sv, NIE_HERE);
+      nie::require((ctx->current_page_offset + (n * sizeof(T))) < ctx->current_page_size, NIE_HERE);
       auto p = reinterpret_cast<uint8_t*>(ctx->current_page.get()) + ctx->current_page_offset;
       ctx->current_page_offset += (n * sizeof(T));
-      nie::require(ctx->current_page_offset <= ctx->current_page_size, "Assertion failed"sv, NIE_HERE);
+      nie::require(ctx->current_page_offset <= ctx->current_page_size, NIE_HERE);
       return reinterpret_cast<T*>(p);
     }
     inline void deallocate(T* data, size_t n) {

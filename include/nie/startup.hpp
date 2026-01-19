@@ -11,11 +11,16 @@ namespace nie {
     return v;
   }
   inline bool register_startup(std::function<void()> f) {
-    startup_funcs().emplace_front(std::move(f));
+    startup_funcs().emplace_front([f = std::move(f)]() {
+      assert(startup_funcs().empty());
+      f();
+      assert(startup_funcs().empty());
+    });
     return true;
   }
   inline void run_startup() {
     auto funcs = std::move(startup_funcs());
+    assert(startup_funcs().empty());
     for (auto& f : funcs)
       f();
     assert(startup_funcs().empty());

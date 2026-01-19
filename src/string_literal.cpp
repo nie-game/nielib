@@ -3,7 +3,7 @@
 #include <nie.hpp>
 #include <nie/log.hpp>
 #include <nie/startup.hpp>
-#include <nie/string_literal.hpp>
+#include <nie/string.hpp>
 #include <print>
 #include <shared_mutex>
 

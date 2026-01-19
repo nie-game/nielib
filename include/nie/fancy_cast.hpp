@@ -176,11 +176,11 @@ namespace nie {
     using fancy_type_type = T;
 
     template <typename... Args> fancy(Args&&... args) : fancy_inherit<Parents...>(std::forward<Args>(args)...) {
-      for (size_t j = 0; j < fancy_cast_slot_count(); j++) {
-        nie::require(fancy_cast_name_slots_instance[j], "Assertion failed"sv, NIE_HERE);
+      /*for (size_t j = 0; j < fancy_cast_slot_count(); j++) {
+        nie::require(fancy_cast_name_slots_instance[j], NIE_HERE);
         if (j)
-          nie::require(fancy_cast_name_slots_instance[j] != fancy_name(), "Assertion failed"sv, NIE_HERE);
-      }
+          nie::require(fancy_cast_name_slots_instance[j] != fancy_name(), NIE_HERE);
+      }*/
     }
     struct my_fancy_interface final : fancy_interface {
       [[gnu::const]] std::string_view name() const override {
@@ -222,7 +222,7 @@ namespace nie {
       auto prawslots = fancy_inherit<Parents...>::fancy_cast_name_rawslots();
       auto pslots = fancy_inherit<Parents...>::fancy_cast_name_slots();
       ret[0] = filter_fancy_interface(name_t(), &fancy_interface_ref_);
-      nie::require(ret[0], "Assertion failed"sv, NIE_HERE);
+      nie::require(ret[0], NIE_HERE);
       size_t idx = 1;
       for (size_t i = 0; i < plen; i++) {
         bool add = true;
@@ -233,11 +233,11 @@ namespace nie {
           }
         if (add) {
           ret[idx] = pslots[i];
-          nie::require(ret[idx], "Assertion failed"sv, NIE_HERE);
+          nie::require(ret[idx], NIE_HERE);
           idx++;
         }
       }
-      nie::require(idx == fancy_cast_slot_count(), "Assertion failed"sv, NIE_HERE);
+      nie::require(idx == fancy_cast_slot_count(), NIE_HERE);
       return ret;
     }
     static constexpr std::array<fancy_interface*, fancy_cast_slot_count()> fancy_cast_name_rawslots() {

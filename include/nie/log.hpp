@@ -153,19 +153,6 @@ namespace nie {
       ss << std::format("'{}'", v.value);
     }
   };
-  NIE_EXPORT void register_nie_string(nie::string);
-  template <nie::string_literal a> struct log_info<log_param<a, nie::string>> {
-    static constexpr auto name = "cached_string"_lit;
-    static constexpr size_t size = 8;
-
-    inline static void write(auto& logger, const log_param<a, nie::string>& v) {
-      register_nie_string(v.value);
-      logger.template write_int<uint64_t>(size_t(v.value.ptr()));
-    }
-    inline static void format(std::stringstream& ss, const log_param<a, nie::string>& v) {
-      ss << std::format("'{}'", v.value());
-    }
-  };
   template <nie::string_literal a> struct log_info<log_param<a, bool>> {
     static constexpr auto name = "boolean"_lit;
     static constexpr size_t size = 1;

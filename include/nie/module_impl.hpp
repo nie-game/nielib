@@ -2,7 +2,7 @@
 #define NIE_MODULE_IMPL_HPP
 
 #include "module.hpp"
-#include "string_literal.hpp"
+#include "string.hpp"
 #include <ranges>
 #include <vector>
 
