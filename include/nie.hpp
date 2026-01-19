@@ -43,7 +43,13 @@ namespace nie {
     return std::unique_ptr<D>(static_cast<D*>(base.release()));
   }
 
-  template <typename T> using errorable = std::expected<T, std::error_code>;
+  template <typename T> struct errorable_decider {
+    using type = T;
+  };
+  template <typename T> struct errorable_decider<T&> {
+    using type = std::reference_wrapper<T>;
+  };
+  template <typename T> using errorable = std::expected<typename errorable_decider<T>::type, std::error_code>;
   using unexpected = std::unexpected<std::error_code>;
 
   static constexpr int to_fatal(std::error_code ec) {
@@ -69,6 +75,12 @@ namespace nie {
     co_return std::unexpected{std::move(name##_ec.error())};                                                                               \
   auto name = std::move(name##_ec.value());
 
+#define CO_EVAR_REF(name, expr)                                                                                                            \
+  auto name##_ec = expr;                                                                                                                   \
+  if (!name##_ec) [[unlikely]]                                                                                                             \
+    co_return std::unexpected{std::move(name##_ec.error())};                                                                               \
+  auto& name = std::move(name##_ec.value()).get();
+
 #define EVOID(expr)                                                                                                                        \
   if (auto ec = expr; !ec) [[unlikely]]                                                                                                    \
     return std::unexpected{std::move(ec.error())};
@@ -88,16 +100,20 @@ namespace nie {
   auto name = std::move(name##_ec.value());
 
 #define ESET(name, expr)                                                                                                                   \
-  if (auto name##_ec = expr; !name##_ec) [[unlikely]]                                                                                      \
-    return std::unexpected{std::move(name##_ec.error())};                                                                                  \
-  else                                                                                                                                     \
-    name = std::move(name##_ec.value());
+  {                                                                                                                                        \
+    if (auto name##_ec = expr; !name##_ec) [[unlikely]]                                                                                    \
+      return std::unexpected{std::move(name##_ec.error())};                                                                                \
+    else                                                                                                                                   \
+      name = std::move(name##_ec.value());                                                                                                 \
+  }
 
 #define CO_ESET(name, expr)                                                                                                                \
-  if (auto name##_ec = expr; !name##_ec) [[unlikely]]                                                                                      \
-    co_return std::unexpected{std::move(name##_ec.error())};                                                                               \
-  else                                                                                                                                     \
-    name = std::move(name##_ec.value());
+  {                                                                                                                                        \
+    if (auto name##_ec = expr; !name##_ec) [[unlikely]]                                                                                    \
+      co_return std::unexpected{std::move(name##_ec.error())};                                                                             \
+    else                                                                                                                                   \
+      name = std::move(name##_ec.value());                                                                                                 \
+  }
 
 } // namespace nie
 
