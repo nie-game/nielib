@@ -250,16 +250,17 @@ namespace nie {
 
 #define NIE_INHERIT_SP(base)                                                                                                               \
   void ref() const noexcept override {                                                                                                     \
-    return static_cast<const base*>(this)->ref();                                                                                          \
+    NIE_UNREACHABLE;                                                                                                                       \
   }                                                                                                                                        \
   void unref() const noexcept override {                                                                                                   \
-    return static_cast<const base*>(this)->unref();                                                                                        \
+    NIE_UNREACHABLE;                                                                                                                       \
   }                                                                                                                                        \
   bool unique() const noexcept override {                                                                                                  \
-    return static_cast<const base*>(this)->unique();                                                                                       \
+    NIE_UNREACHABLE;                                                                                                                       \
+    return {};                                                                                                                             \
   }                                                                                                                                        \
   void destruct() noexcept override {                                                                                                      \
-    return static_cast<base*>(this)->destruct();                                                                                           \
+    NIE_UNREACHABLE;                                                                                                                       \
   }
 
 namespace std {
