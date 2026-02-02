@@ -40,12 +40,6 @@ function nielib_data()
   add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE",
     {public = true, force = true})
 
-  if is_os("windows") then
-    add_defines("NIE_EXPORT=[[gnu::dllimport]]", {interface = true})
-    add_defines("NIE_EXPORT=[[gnu::dllexport]]", {public = false})
-  else
-    add_defines("NIE_EXPORT=[[gnu::visibility(\"default\")]]", {public = true})
-  end
 
 if not is_mode("debug")then
   add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
@@ -178,11 +172,22 @@ do
     add_shflags("-fsanitize=type", {public = true})
     add_ldflags("-fsanitize=type", {public = true})
   end
+  if is_os("windows") then
+    add_defines("NIE_EXPORT=[[gnu::dllimport]]", {interface = true})
+    add_defines("NIE_EXPORT=[[gnu::dllexport]]", {public = false})
+  else
+    add_defines("NIE_EXPORT=[[gnu::visibility(\"default\")]]", {public = true})
+  end
 end
 target_end()
 target("nielib_static")
 do
   set_kind("static")
   nielib_data()
+  if is_os("windows") then
+    add_defines("NIE_EXPORT=", {public = true})
+  else
+    add_defines("NIE_EXPORT=[[gnu::visibility(\"default\")]]", {public = true})
+  end
 end
 target_end()
