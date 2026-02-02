@@ -97,12 +97,12 @@ if not is_mode("debug")then
       add_cxflags("-flto=thin", {public = true, force = true})
       add_ldflags("-flto=thin", {public = true, force = true})
       add_shflags("-flto=thin", {public = true, force = true})
-      add_cxflags("-fstrict-vtable-pointers", {public = true, force = true})
-      add_ldflags("-fstrict-vtable-pointers", {public = true, force = true})
-      add_shflags("-fstrict-vtable-pointers", {public = true, force = true})
-      add_cxflags("-fno-force-dwarf-frame", {public = true, force = true})
-      add_ldflags("-fno-force-dwarf-frame", {public = true, force = true})
-      add_shflags("-fno-force-dwarf-frame", {public = true, force = true})
+      add_cxflags("-fstrict-vtable-pointers", {public = true})
+      add_ldflags("-fstrict-vtable-pointers", {public = true})
+      add_shflags("-fstrict-vtable-pointers", {public = true})
+      add_cxflags("-fno-force-dwarf-frame", {public = true})
+      add_ldflags("-fno-force-dwarf-frame", {public = true})
+      add_shflags("-fno-force-dwarf-frame", {public = true})
     end
     add_cxflags("-fno-rtti", {public = true})
   elseif is_os("windows") then
