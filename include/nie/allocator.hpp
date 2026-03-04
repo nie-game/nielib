@@ -58,6 +58,7 @@ namespace nie {
     return a.allocator_ == b.allocator_;
   }
   NIE_EXPORT nie::sp<allocator_interface> malloc_allocator();
+  NIE_EXPORT nie::sp<allocator_interface> chonky_allocator();
 
   struct allocation_data {
     std::size_t n;
