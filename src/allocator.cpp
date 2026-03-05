@@ -41,6 +41,11 @@ namespace nie {
     std::vector<std::unique_ptr<uint64_t[]>> others;
     std::array<uint64_t, 65536 - 128> base_part;
     ~chonky_allocator() {
+      if (sum) {
+        std::unique_lock _{mtx};
+        for (auto [a, b] : cache)
+          std::println("Unfreed chonked allocation {:#x} in {}", size_t(a), b);
+      }
       assert(sum == 0);
     }
     virtual char* allocate(std::size_t n, nie::source_location location) noexcept override {
@@ -57,11 +62,19 @@ namespace nie {
       auto ptr = current.data();
       assert((size_t(ptr) & 0x7) == 0);
       current = current.subspan(slots);
+      if constexpr (watch_too_much) {
+        std::unique_lock _{mtx};
+        cache.emplace(ptr, location);
+      }
       return reinterpret_cast<char*>(ptr);
     }
     virtual void deallocate(char* p, std::size_t n) noexcept override {
       assert(sum >= n);
       sum -= n;
+      if constexpr (watch_too_much) {
+        std::unique_lock _{mtx};
+        assert(cache.erase(p) == 1);
+      }
       if (sum == 0) {
         current = base_part;
         others.clear();
