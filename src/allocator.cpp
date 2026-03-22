@@ -64,7 +64,7 @@ namespace nie {
       current = current.subspan(slots);
       if constexpr (watch_too_much) {
         std::unique_lock _{mtx};
-        cache.emplace(ptr, location);
+        cache.emplace(reinterpret_cast<char*>(ptr), location);
       }
       return reinterpret_cast<char*>(ptr);
     }
