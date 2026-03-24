@@ -9,7 +9,7 @@ namespace nie {
     std::mutex mtx;
     std::map<char*, nie::source_location> cache;
   } // namespace
-  constexpr static bool watch_too_much = false;
+  constexpr static bool watch_too_much = true;
   struct malloc_allocator : nie::allocator_interface {
     std::atomic<uint64_t> sum = 0;
     virtual char* allocate(std::size_t n, nie::source_location location) noexcept override {
