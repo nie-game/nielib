@@ -40,11 +40,16 @@ namespace nie {
     std::span<uint64_t> current = base_part;
     std::vector<std::unique_ptr<uint64_t[]>> others;
     std::array<uint64_t, 65536 - 128> base_part;
+
+    std::mutex mtx;
+    std::map<char*, std::pair<nie::source_location, size_t>> cache;
+
     ~chonky_allocator() {
       if (sum) {
         std::unique_lock _{mtx};
+        std::println("Count unfreed {} {:#x}", cache.size(), sum);
         for (auto [a, b] : cache)
-          std::println("Unfreed chonked allocation {:#x} in {}", size_t(a), b);
+          std::println("Unfreed chonked allocation {:#x} in {}", size_t(a), b.first);
       }
       assert(sum == 0);
     }
@@ -64,7 +69,8 @@ namespace nie {
       current = current.subspan(slots);
       if constexpr (watch_too_much) {
         std::unique_lock _{mtx};
-        cache.emplace(reinterpret_cast<char*>(ptr), location);
+        assert(!cache.contains(reinterpret_cast<char*>(ptr)));
+        cache.emplace(reinterpret_cast<char*>(ptr), std::pair<nie::source_location, size_t>{location, n});
       }
       return reinterpret_cast<char*>(ptr);
     }
@@ -73,6 +79,7 @@ namespace nie {
       sum -= n;
       if constexpr (watch_too_much) {
         std::unique_lock _{mtx};
+        assert(cache.at(p).second == n);
         assert(cache.erase(p) == 1);
       }
       if (sum == 0) {
