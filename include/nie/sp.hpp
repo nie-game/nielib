@@ -3,8 +3,10 @@
 
 #include <atomic>
 #include <iostream>
+#include <mutex>
 #include <nie.hpp>
 #include <nie/fancy_cast.hpp>
+#include <shared_mutex>
 
 namespace nie {
   struct ref_cnt_interface : nie::fancy<ref_cnt_interface, "nie::ref_cnt_interface"> {
@@ -246,6 +248,29 @@ namespace nie {
     } else
       return {};
   }
+
+  template <typename T> struct atomic_sp {
+    inline nie::sp<T> load() {
+      std::shared_lock _{mtx_};
+      return data_;
+    }
+    inline nie::sp<T> exchange(nie::sp<T> p) {
+      nie::sp<T> old_value;
+      {
+        std::unique_lock _{mtx_};
+        old_value = std::move(data_);
+        data_ = std::move(p);
+      }
+      return old_value;
+    }
+    inline void store(nie::sp<T> p) {
+      exchange(std::move(p));
+    }
+
+  private:
+    std::shared_mutex mtx_;
+    nie::sp<T> data_;
+  };
 } // namespace nie
 
 #define NIE_INHERIT_SP(base)                                                                                                               \

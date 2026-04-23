@@ -37,9 +37,9 @@ namespace nie {
   };
   NIE_EXPORT source_location source_location::current(std::source_location base) {
     static std::mutex mtx;
-    static std::unordered_map<std::source_location, heap_source_location_container, sl_hash, sl_eq> cache;
+    static auto cache = new std::unordered_map<std::source_location, heap_source_location_container, sl_hash, sl_eq>;
     std::unique_lock lock{mtx};
-    auto [it, inserted] = cache.emplace(base, heap_source_location_container{base});
+    auto [it, inserted] = cache->emplace(base, heap_source_location_container{base});
     auto ptr = &it->second;
     lock.unlock();
     if (inserted) {

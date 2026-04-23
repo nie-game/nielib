@@ -1,3 +1,4 @@
+#include <cstring>
 #include <map>
 #include <mutex>
 #include <nie.hpp>
@@ -13,8 +14,11 @@ namespace nie {
   struct malloc_allocator : nie::allocator_interface {
     std::atomic<uint64_t> sum = 0;
     virtual char* allocate(std::size_t n, nie::source_location location) noexcept override {
+      if (n < 8)
+        n = 8;
       sum += n;
       auto ptr = (char*)malloc(n);
+      memset(ptr, 0, n);
       if constexpr (watch_too_much) {
         std::unique_lock _{mtx};
         cache.emplace(ptr, location);
@@ -22,6 +26,8 @@ namespace nie {
       return ptr;
     }
     virtual void deallocate(char* p, std::size_t n) noexcept override {
+      if (n < 8)
+        n = 8;
       assert(sum >= n);
       sum -= n;
       if constexpr (watch_too_much) {
@@ -104,6 +110,7 @@ namespace nie {
     std::unique_lock _{mtx};
     nie::logger<"malloc_allocator">{}.warn<"unfreed">("count"_log = cache.size());
     for (auto& [p, location] : cache)
-      nie::logger<"malloc_allocator">{}.warn<"unfreed">("ptr"_log = p, "location"_log = location);
+      nie::logger<"malloc_allocator">{}.warn<"unfreed">(
+          "ptr"_log = size_t(p), "data"_log = std::string_view(p, 8), "location"_log = location);
   }
 } // namespace nie
