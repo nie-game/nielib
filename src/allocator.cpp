@@ -99,11 +99,11 @@ namespace nie {
   };
 
   NIE_EXPORT nie::sp<allocator_interface> malloc_allocator() {
-    auto p = nie::make_sp<struct malloc_allocator>();
+    auto p = nie::make_sp_internal<struct malloc_allocator>();
     return p;
   }
   NIE_EXPORT nie::sp<allocator_interface> chonky_allocator() {
-    auto p = nie::make_sp<struct chonky_allocator>();
+    auto p = nie::make_sp_internal<struct chonky_allocator>();
     return p;
   }
   NIE_EXPORT void clean_malloc_allocator() {
