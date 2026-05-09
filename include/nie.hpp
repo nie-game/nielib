@@ -3,7 +3,6 @@
 
 #define __cpp_lib_expected 202211L
 
-#include "nie/log.hpp"
 #include "nie/require.hpp"
 #include "nie/source_location.hpp"
 #include <chrono>
@@ -116,5 +115,5 @@ namespace nie {
   }
 
 } // namespace nie
-
 #endif
+#include "nie/log.hpp"
