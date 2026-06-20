@@ -23,13 +23,18 @@ namespace nie {
     using propagate_on_container_copy_assignment = std::true_type;
     using propagate_on_container_move_assignment = std::true_type;
     inline allocator(nie::sp<allocator_interface> allocator) : allocator_(std::move(allocator)) {}
-    template <typename U> inline allocator(const allocator<U>& o) : allocator_(o.allocator_) {}
-    template <typename U> inline allocator(allocator<U>&& o) : allocator_(std::move(o.allocator_)) {}
+    inline allocator(nie::sp<allocator_interface> allocator, nie::source_location location)
+        : allocator_(std::move(allocator)), location(location) {}
+    template <typename U> inline allocator(const allocator<U>& o) : allocator_(o.allocator_), location(o.location) {}
+    template <typename U> inline allocator(allocator<U>&& o) : allocator_(std::move(o.allocator_)), location(std::move(o.location)) {}
     using value_type = T;
     template <class U> struct rebind {
       using other = allocator<U>;
     };
-    inline T* allocate(std::size_t n, nie::source_location location = nie::source_location::current()) {
+    inline T* allocate(std::size_t n) {
+      return allocate(n, this->location);
+    }
+    inline T* allocate(std::size_t n, nie::source_location location) {
       static_assert(
           (std::alignment_of_v<T> == 1) || (std::alignment_of_v<T> == 2) || (std::alignment_of_v<T> == 4) || (std::alignment_of_v<T> == 8));
       assert(!!*this);
@@ -55,12 +60,21 @@ namespace nie {
 
   private:
     nie::sp<allocator_interface> allocator_;
+
+  public:
+    nie::source_location location = NIE_HERE;
   };
   template <typename T, typename U> inline bool operator==(const allocator<T>& a, const allocator<U>& b) {
     return a.allocator_ == b.allocator_;
   }
   NIE_EXPORT nie::sp<allocator_interface> malloc_allocator();
   NIE_EXPORT nie::sp<allocator_interface> chonky_allocator();
+
+  template <typename T, nie::source_location loc, typename... Args>
+    requires(std::is_base_of_v<ref_cnt_interface, T>)
+  sp<T> inline make_sp(Args&&... args) noexcept {
+    return allocate_sp<T>(nie::allocator<char>{nie::malloc_allocator(), loc}, std::forward<Args>(args)...);
+  }
 
   struct allocation_data {
     std::size_t n;
@@ -124,4 +138,4 @@ namespace nie {
   }
 } // namespace nie
 
-#endif // NIE_ALLOCATOR_HPP
+#endif

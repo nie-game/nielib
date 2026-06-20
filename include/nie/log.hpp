@@ -488,10 +488,11 @@ namespace nie {
     }
   };
 } // namespace nie
-inline void bleh(nie::source_location location = nie::source_location::current()) {
+inline nie::errorable<void> bleh(nie::source_location location = nie::source_location::current()) {
   nie::logger<>{}.trace<"bleh">("location"_log = location);
+  return {};
 }
-template <typename T> inline T bleh(T&& t, nie::source_location location = nie::source_location::current()) {
+template <typename T> inline nie::errorable<T> bleh(T&& t, nie::source_location location = nie::source_location::current()) {
   nie::logger<>{}.trace<"bleh">("location"_log = location);
   return t;
 }

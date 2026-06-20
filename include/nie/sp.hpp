@@ -1,10 +1,14 @@
 #ifndef NIE_SP_HPP
 #define NIE_SP_HPP
 
+#include "source_location.hpp"
 #include <atomic>
 #include <iostream>
+#include <memory>
+#include <mutex>
 #include <nie.hpp>
 #include <nie/fancy_cast.hpp>
+#include <shared_mutex>
 
 namespace nie {
   struct ref_cnt_interface : nie::fancy<ref_cnt_interface, "nie::ref_cnt_interface"> {
@@ -71,6 +75,9 @@ namespace nie {
     template <typename U, typename... Args>
       requires(std::is_base_of_v<ref_cnt_interface, U>)
     friend sp<U> inline make_sp(Args&&... args) noexcept;
+    template <typename U, typename... Args>
+      requires(std::is_base_of_v<ref_cnt_interface, U>)
+    friend sp<U> inline make_sp_internal(Args&&... args) noexcept;
     template <typename U, typename A, typename... Args> friend sp<U> inline allocate_sp(const A& alloc, Args&&... args) noexcept;
 
     constexpr sp() noexcept : ptr_(nullptr) {}
@@ -198,7 +205,7 @@ namespace nie {
   };
   template <typename T, typename... Args>
     requires(std::is_base_of_v<ref_cnt_interface, T>)
-  sp<T> inline make_sp(Args&&... args) noexcept {
+  sp<T> inline make_sp_internal(Args&&... args) noexcept {
     auto p = new ref_cnt_impl_delete<T>(std::forward<Args>(args)...);
     assert(p);
     return sp<T>(p);
@@ -246,20 +253,43 @@ namespace nie {
     } else
       return {};
   }
+
+  template <typename T> struct atomic_sp {
+    inline nie::sp<T> load() {
+      std::shared_lock _{mtx_};
+      return data_;
+    }
+    inline nie::sp<T> exchange(nie::sp<T> p) {
+      nie::sp<T> old_value;
+      {
+        std::unique_lock _{mtx_};
+        old_value = std::move(data_);
+        data_ = std::move(p);
+      }
+      return old_value;
+    }
+    inline void store(nie::sp<T> p) {
+      exchange(std::move(p));
+    }
+
+  private:
+    std::shared_mutex mtx_;
+    nie::sp<T> data_;
+  };
 } // namespace nie
 
 #define NIE_INHERIT_SP(base)                                                                                                               \
-  void ref() const noexcept override {                                                                                                     \
+  virtual void ref() const noexcept override {                                                                                             \
     NIE_UNREACHABLE;                                                                                                                       \
   }                                                                                                                                        \
-  void unref() const noexcept override {                                                                                                   \
+  virtual void unref() const noexcept override {                                                                                           \
     NIE_UNREACHABLE;                                                                                                                       \
   }                                                                                                                                        \
-  bool unique() const noexcept override {                                                                                                  \
+  virtual bool unique() const noexcept override {                                                                                          \
     NIE_UNREACHABLE;                                                                                                                       \
     return {};                                                                                                                             \
   }                                                                                                                                        \
-  void destruct() noexcept override {                                                                                                      \
+  virtual void destruct() noexcept override {                                                                                              \
     NIE_UNREACHABLE;                                                                                                                       \
   }
 
