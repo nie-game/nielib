@@ -20,6 +20,8 @@ namespace nie {
     allocator(allocator&&) = default;
     allocator& operator=(const allocator&) = default;
     allocator& operator=(allocator&&) = default;
+    using propagate_on_container_copy_assignment = std::true_type;
+    using propagate_on_container_move_assignment = std::true_type;
     inline allocator(nie::sp<allocator_interface> allocator) : allocator_(std::move(allocator)) {}
     template <typename U> inline allocator(const allocator<U>& o) : allocator_(o.allocator_) {}
     template <typename U> inline allocator(allocator<U>&& o) : allocator_(std::move(o.allocator_)) {}

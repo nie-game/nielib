@@ -79,6 +79,7 @@ namespace nie {
       sum -= n;
       if constexpr (watch_too_much) {
         std::unique_lock _{mtx};
+        assert(cache.contains(p));
         assert(cache.at(p).second == n);
         assert(cache.erase(p) == 1);
       }
