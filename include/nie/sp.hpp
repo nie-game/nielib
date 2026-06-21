@@ -143,6 +143,7 @@ namespace nie {
       return ptr_;
     }
     inline T* operator->() const noexcept {
+      assert(ptr_ != nullptr);
       return ptr_;
     }
 

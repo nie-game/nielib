@@ -69,12 +69,11 @@ function nielib_data()
     add_shflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
     add_cxflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
     if is_mode("debug") then
-      --[[add_cxflags("-fstack-protector-all", "-mshstk", {public = true, force = true})
+      ----[[
+      add_cxflags("-fstack-protector-all", "-mshstk", {public = true, force = true})
       add_ldflags("-fstack-protector-all", "-mshstk", {public = true, force = true})
       add_shflags("-fstack-protector-all", "-mshstk", {public = true, force = true})
-      add_cxflags( "-fsanitize=safe-stack", {public = true, force = true})
-      add_ldflags("-fsanitize=safe-stack", {public = true, force = true})
-      add_shflags("-fsanitize=safe-stack", {public = true, force = true})]]
+      --]]
     else
       add_cxflags("-march=native", {public = true, force = true})
       add_ldflags("-march=native", {public = true, force = true})
@@ -170,6 +169,11 @@ do
     add_cxflags("-fsanitize=type", {public = true})
     add_shflags("-fsanitize=type", {public = true})
     add_ldflags("-fsanitize=type", {public = true})
+  end
+  if false and is_mode("debug") then 
+    add_cxflags( "-fsanitize=safe-stack", {public = true, force = true})
+    add_ldflags("-fsanitize=safe-stack", {public = true, force = true})
+    add_shflags("-fsanitize=safe-stack", {public = true, force = true})
   end
   if is_os("windows") then
     add_defines("NIE_EXPORT=[[gnu::dllimport]]", {interface = true})
