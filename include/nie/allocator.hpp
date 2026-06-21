@@ -8,10 +8,16 @@
 namespace nie {
   struct allocator_interface : ref_cnt_interface {
     virtual ~allocator_interface() = default;
-    virtual char* allocate(std::size_t, nie::source_location location) noexcept = 0;
+    virtual char* allocate(std::size_t, nie::source_location location, std::string_view) noexcept = 0;
     virtual void deallocate(char*, std::size_t) noexcept = 0;
     virtual void verify_empty() noexcept = 0;
   };
+  template <typename T> inline std::string_view get_name() {
+    if constexpr (std::is_base_of_v<is_fancy, T>) {
+      return get_fancy_interface<T>::fancy_name()->name();
+    }
+    return ""sv;
+  }
   template <typename T> struct allocator {
     template <typename U> friend struct allocator;
     template <typename T2, typename U> friend bool operator==(const allocator<T2>& a, const allocator<U>& b);
@@ -22,7 +28,7 @@ namespace nie {
     allocator& operator=(allocator&&) = default;
     using propagate_on_container_copy_assignment = std::true_type;
     using propagate_on_container_move_assignment = std::true_type;
-    inline allocator(nie::sp<allocator_interface> allocator) : allocator_(std::move(allocator)) {}
+    inline allocator(nie::sp<allocator_interface> allocator) : allocator_(std::move(allocator)), location(NIE_HERE) {}
     inline allocator(nie::sp<allocator_interface> allocator, nie::source_location location)
         : allocator_(std::move(allocator)), location(location) {}
     template <typename U> inline allocator(const allocator<U>& o) : allocator_(o.allocator_), location(o.location) {}
@@ -40,7 +46,7 @@ namespace nie {
       assert(!!*this);
       assert(!!allocator_);
       assert(!!n);
-      auto ret = reinterpret_cast<T*>(allocator_->allocate(sizeof(T) * n, location));
+      auto ret = reinterpret_cast<T*>(allocator_->allocate(sizeof(T) * n, location, get_name<T>()));
       assert(ret);
       assert((std::size_t(ret) % std::alignment_of_v<T>) == 0);
       return ret;
@@ -80,11 +86,13 @@ namespace nie {
     std::size_t n;
     nie::sp<allocator_interface> allocator_;
   };
-  inline void* anonymous_allocate(
-      nie::sp<allocator_interface> ctx, std::size_t n, nie::source_location location = nie::source_location::current()) noexcept {
+  inline void* anonymous_allocate(nie::sp<allocator_interface> ctx,
+      std::size_t n,
+      nie::source_location location = nie::source_location::current(),
+      std::string_view name = ""sv) noexcept {
     assert(!!ctx);
     auto ctxp = ctx.get();
-    auto dptr = ctxp->allocate(n + sizeof(allocation_data), location);
+    auto dptr = ctxp->allocate(n + sizeof(allocation_data), location, name);
     auto w = new (dptr) allocation_data{n, std::move(ctx)};
     assert(!!w->allocator_);
     auto ptr = w + 1;
@@ -133,7 +141,7 @@ namespace nie {
   template <typename T> using unique_ptr = std::unique_ptr<T, anonymous_deleter>;
   template <typename T, nie::source_location location, typename... Args>
   inline unique_ptr<T> allocate_unique(const nie::allocator<T>& alloc, Args&&... args) {
-    auto ptr = anonymous_allocate(alloc.arena(), sizeof(T), location);
+    auto ptr = anonymous_allocate(alloc.arena(), sizeof(T), location, get_name<T>());
     return {new (ptr) T(std::forward<Args>(args)...), &anonymous_deleter_impl<T>::instance};
   }
 } // namespace nie
