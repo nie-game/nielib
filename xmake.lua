@@ -175,6 +175,7 @@ do
     add_ldflags("-fsanitize=safe-stack", {public = true, force = true})
     add_shflags("-fsanitize=safe-stack", {public = true, force = true})
   end
+  add_defines("NIELIB_CAPNP",{public = false})
   if is_os("windows") then
     add_defines("NIE_EXPORT=[[gnu::dllimport]]", {interface = true})
     add_defines("NIE_EXPORT=[[gnu::dllexport]]", {public = false})
