@@ -1,3 +1,4 @@
+#ifdef NIELIB_CAPNP
 #include <nie/log_capnp.hpp>
 namespace nie {
   inline bool register_capnp(uint64_t s, const nie::function_ref<void()>& cb) {
@@ -30,3 +31,4 @@ namespace nie {
     }
   }
 } // namespace nie
+#endif
