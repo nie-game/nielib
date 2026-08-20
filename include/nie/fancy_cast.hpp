@@ -339,13 +339,14 @@ namespace nie {
     } else
       return {};
   }
-  template <typename D, typename S>
-  std::unique_ptr<D> fancy_cast(std::unique_ptr<S> s, nie::source_location location = nie::source_location::current()) {
+  template <typename D, typename S, typename Deleter>
+  std::unique_ptr<D, Deleter> fancy_cast(std::unique_ptr<S, Deleter> s, nie::source_location location = nie::source_location::current()) {
     if (s) {
       D* p = fancy_cast<D>(s.get(), location);
       if (p) {
+        auto deleter = std::move(s.get_deleter());
         s.release();
-        return std::unique_ptr<D>{p};
+        return std::unique_ptr<D, Deleter>{p, std::move(deleter)};
       } else
         return {};
     } else
