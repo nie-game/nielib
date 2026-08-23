@@ -362,7 +362,7 @@ namespace nie {
     }
     template <string_literal message, typename... T> [[noreturn]] inline void fatal(const T&... args) {
       flexible_log<level_e::fatal, message, T...>(args...);
-      nie::fatal("fatal failed");
+      nie::fatal("fatal failed", NIE_HERE);
     }
 
     template <level_e level, string_literal message, typename... Args> inline log_cookie flexible_log(const Args&... args) {
