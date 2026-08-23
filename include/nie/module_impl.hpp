@@ -140,4 +140,4 @@ namespace nie {
     mctx->base_dependencies = nie::global_dependencies();                                                                                  \
   }
 
-#endif // NIE_MODULE_IMPL_HPP
+#endif

@@ -61,6 +61,7 @@ namespace nie {
   template <typename T> struct dependency : base_dependency {
     inline dependency() {
       info = T::info;
+      assert(info.name.size());
       global_dependencies().push_back(this);
     }
     inline T& operator*() {
@@ -78,4 +79,4 @@ namespace nie {
 
 #define DECLARE_MODULE(name) extern "C" [[gnu::visibility("default"), gnu::dllexport]] void nieopen_##name(nie::module_ctx* mctx) noexcept
 
-#endif // NIE_MODULE_HPP
+#endif
