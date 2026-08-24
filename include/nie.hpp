@@ -56,11 +56,11 @@ namespace nie {
     return 42;
   }
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
 #define NIE_UNREACHABLE nie::fatal("Unreachable reached", NIE_HERE)
-#else
-#define NIE_UNREACHABLE __builtin_unreachable()
-#endif
+//#else
+//#define NIE_UNREACHABLE __builtin_unreachable()
+//#endif
 
 #define EVAR(name, expr)                                                                                                                   \
   auto name##_ec = expr;                                                                                                                   \

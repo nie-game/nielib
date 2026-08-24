@@ -5,6 +5,8 @@
 #include <nie/allocator.hpp>
 #include <nie/startup.hpp>
 
+#undef NDEBUG
+
 namespace nie {
 #ifndef NDEBUG
   namespace {
