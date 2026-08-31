@@ -7,65 +7,53 @@
 //
 //===---------------------------------------------------------------------===//
 
-#ifndef NIE_LIBCPP_SOURCE_LOCATION
-#define NIE_LIBCPP_SOURCE_LOCATION
+#ifndef NIE_SOURCE_LOCATION_HPP
+#define NIE_SOURCE_LOCATION_HPP
 
 #include "string_literal.hpp"
 #include <source_location>
 
 namespace nie {
-  struct source_location_container {
-    virtual const char* file_name() const noexcept = 0;
-    virtual const char* function_name() const noexcept = 0;
-    virtual std::uint_least32_t line() const noexcept = 0;
-    virtual std::uint_least32_t column() const noexcept = 0;
-    virtual bool dynamic() const noexcept = 0;
-  };
-  template <nie::string_literal Tfile_name, uint_least32_t Tline> struct static_source_location_container : source_location_container {
-    bool dynamic() const noexcept override {
-      return false;
+  using cookie_t = bool;
+#ifndef NDEBUG
+  NIE_EXPORT void register_source_location(const cookie_t*, std::string, uint32_t);
+#endif
+  template <nie::string_literal Tfile_name, uint_least32_t Tline> struct static_source_location_container {
+#ifndef NDEBUG
+    inline static_source_location_container(const cookie_t* ptr) {
+      register_source_location(ptr, std::string{Tfile_name()}, Tline);
     }
-    const char* file_name() const noexcept override {
-      return Tfile_name().data();
-    }
-    const char* function_name() const noexcept override {
-      return "?";
-    }
-    std::uint_least32_t line() const noexcept override {
-      return Tline;
-    }
-    std::uint_least32_t column() const noexcept override {
-      return 0;
-    }
+#endif
   };
   template <typename T> struct slcache {
-    static constexpr T instance;
+    static inline const cookie_t cookie = 0;
+#ifndef NDEBUG
+    static inline T instance = &cookie;
+#endif
   };
   struct source_location {
     NIE_EXPORT static source_location current(std::source_location base = std::source_location::current());
-    const source_location_container* impl = nullptr;
-    bool dynamic() const noexcept {
-      return impl ? impl->dynamic() : false;
-    }
-    const char* file_name() const noexcept {
-      return impl ? impl->file_name() : "invalid";
-    }
-    const char* function_name() const noexcept {
-      return impl ? impl->function_name() : "invalid";
-    }
-    std::uint_least32_t line() const noexcept {
-      return impl ? impl->line() : 0;
-    }
-    std::uint_least32_t column() const noexcept {
-      return impl ? impl->column() : 0;
-    }
+    const cookie_t* impl = nullptr;
+#ifndef NDEBUG
+    const void* other = nullptr;
+#endif
+    NIE_EXPORT const char* file_name() const;
+    NIE_EXPORT uint32_t line() const;
   };
 } // namespace nie
 
+#ifndef NDEBUG
 #define NIE_HERE                                                                                                                           \
   nie::source_location {                                                                                                                   \
-    &nie::slcache<nie::static_source_location_container<__FILE__, __LINE__>>::instance                                                     \
+    &nie::slcache<nie::static_source_location_container<__FILE__, __LINE__>>::cookie,                                                      \
+        &nie::slcache<nie::static_source_location_container<__FILE__, __LINE__>>::instance                                                 \
   }
+#else
+#define NIE_HERE                                                                                                                           \
+  nie::source_location {                                                                                                                   \
+    &nie::slcache<nie::static_source_location_container<__FILE__, __LINE__>>::cookie                                                       \
+  }
+#endif
 
 #include <format>
 template <> struct std::formatter<nie::source_location, char> {
@@ -77,12 +65,11 @@ template <> struct std::formatter<nie::source_location, char> {
     return it;
   }
   template <class FmtContext> FmtContext::iterator format(const nie::source_location& a, FmtContext& ctx) const {
-    return std::format_to(ctx.out(),
-        "{}{}:{} ({})",
-        a.dynamic() ? "D "sv : ""sv,
-        a.file_name() ? a.file_name() : "",
-        a.line(),
-        a.function_name() ? a.function_name() : "");
+#ifndef NDEBUG
+    return std::format_to(ctx.out(), "{}:{}", a.file_name(), a.line());
+#else
+    return std::format_to(ctx.out(), "{:#x}", size_t(a.impl));
+#endif
   }
 };
-#endif // NIE_LIBCPP_SOURCE_LOCATION
+#endif

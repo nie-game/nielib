@@ -165,21 +165,6 @@ namespace nie {
     disablers()[std::string(v)].emplace_back(ptr);
     disablers()["*"].emplace_back(ptr);
   }
-  struct l_hash {
-    std::hash<const char*> function_hash;
-    std::hash<const char*> file_hash;
-    std::hash<std::uint_least32_t> line_hash;
-    std::hash<std::uint_least32_t> column_hash;
-    inline size_t operator()(nie::source_location l) const {
-      return function_hash(l.function_name()) ^ file_hash(l.file_name()) ^ line_hash(l.line()) ^ column_hash(l.column());
-    }
-  };
-  struct l_equal {
-    inline bool operator()(nie::source_location a, nie::source_location b) const {
-      return (a.function_name() == b.function_name()) && (a.file_name() == b.file_name()) && (a.line() == b.line()) &&
-             (a.column() == b.column());
-    }
-  };
   void register_nie_string(nie::string s) {
     static std::shared_mutex mtx;
     static std::unordered_set<nie::string> set;
@@ -205,27 +190,5 @@ namespace nie {
         delete cur;
       }
     });
-#if 0
-    void* ptr = nullptr;
-    bool debug_log = false;
-#ifndef _WIN32
-    if (debug_log) {
-      assert(!nie::log::nie_log_buffer_output);
-      int fd = open((executable_name() + std::string(".nielog")).data(), O_RDWR | O_CLOEXEC | O_CREAT | O_TRUNC, 0666);
-      if (fd == -1) {
-        perror("Log File Open");
-        abort();
-      }
-      if (ftruncate(fd, arena_size)) {
-        perror("Log File Truncate");
-        abort();
-      }
-      ptr = mmap(nullptr, arena_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    } else
-#endif
-    {
-      ptr = malloc(arena_size);
-    }
-#endif
   }
 } // namespace nie

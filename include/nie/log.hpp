@@ -10,6 +10,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstring>
+#include <filesystem>
 #include <format>
 #include <iostream>
 #include <nie.hpp>
@@ -127,6 +128,19 @@ namespace nie {
     }
     inline static void format(std::stringstream& ss, const log_param<a, std::string_view>& v) {
       ss << std::format("'{}'", v.value);
+    }
+  };
+  template <nie::string_literal a> struct log_info<log_param<a, std::filesystem::path>> {
+    static constexpr auto name = "string"_lit;
+    static constexpr size_t size = 65536;
+
+    inline static void write(auto& logger, const log_param<a, std::filesystem::path>& v) {
+      auto d = v.value.string();
+      logger.template write_int<uint32_t>(d.size());
+      logger.write(d.data(), d.size());
+    }
+    inline static void format(std::stringstream& ss, const log_param<a, std::filesystem::path>& v) {
+      ss << std::format("'{}'", v.value.string());
     }
   };
   template <nie::string_literal a> struct log_info<log_param<a, std::span<const uint8_t>>> {
@@ -452,10 +466,6 @@ namespace nie {
 #ifdef NDEBUG
       // Release
       if constexpr ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal))
-#else
-      // Debug
-      if ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal) ||
-          (!log_message_disable<msg_data>::is_disabled))
 #endif
         if constexpr (level != level_e::internal) {
           if (frame) {
@@ -481,7 +491,9 @@ namespace nie {
           {
             write_log_file(
                 std::format("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str()));
-            std::println("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str());
+            if ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal) ||
+                (!log_message_disable<msg_data>::is_disabled))
+              std::println("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str());
           }
         }
       return cookie;
