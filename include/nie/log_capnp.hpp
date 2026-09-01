@@ -16,18 +16,18 @@ namespace nie {
   template <> struct is_dynamic<capnp::DynamicCapability> : std::true_type {};
 
   template <typename T, typename v = void> struct base;
-  template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Reader>>> {
+  /*template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Reader>>> {
     using type = typename T::Reader::Reads;
     // using well = void;
-  };
+  };*/
   template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Reads>>> {
     using type = typename T::Reads;
     using well = void;
   };
-  template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Builds>>> {
+  /*template <typename T> struct base<T, std::enable_if_t<!std::is_void_v<typename T::Builds>>> {
     using type = typename T::Builds;
     // using well = void;
-  };
+  };*/
 
   NIE_EXPORT void register_capnp_me(capnp::Schema s);
 

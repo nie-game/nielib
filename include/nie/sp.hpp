@@ -218,7 +218,7 @@ namespace nie {
     void destruct() noexcept override {
       using traits = std::allocator_traits<A>::template rebind_traits<ref_cnt_impl_allocator<T, A>>;
       typename traits::allocator_type a(alloc);
-      ref_cnt_impl_allocator::~ref_cnt_impl_allocator();
+      this->~ref_cnt_impl_allocator();
       traits::deallocate(a, this, 1);
     } // namespace nie
   private:

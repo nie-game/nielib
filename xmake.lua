@@ -49,7 +49,7 @@ add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2", "sse4.1",{public=true})
     add_shflags("-Wl,--exclude-libs,ALL", {public = true, force = true})
   end
 
-  add_cxxflags("-Werror=inconsistent-missing-override", {public = true, force = true})
+  add_cxxflags("-Werror=inconsistent-missing-override", {public = true})
   add_cxflags("-fuse-ld=lld", "-Werror=move", "-Werror=unused-result", "-Werror=return-type", "-Werror=switch",
     "-Werror=delete-non-virtual-dtor", "-Werror=return-type", "-Werror=switch",
     "-Werror=call-to-pure-virtual-from-ctor-dtor", "-Werror=defaulted-function-deleted",
@@ -58,7 +58,7 @@ add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2", "sse4.1",{public=true})
     --"-Werror=unused-value",
      "-Werror=uninitialized",
     "-Werror=tautological-constant-out-of-range-compare", "-Werror=argument-undefined-behaviour",
-    "-Werror=vexing-parse", "-Werror=reorder-ctor", "-Werror=dangling", {public = true, force = true})
+    "-Werror=vexing-parse", "-Werror=reorder-ctor", "-Werror=dangling", {public = true})
 
   if is_os("linux") then
     add_ldflags("-fuse-ld=lld", {public = true, force = true})
