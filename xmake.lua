@@ -32,13 +32,14 @@ function nielib_data()
   add_defines("NIELIB_FULL", {public = true})
   add_packages("capnproto")
 
-  add_defines("GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true, force = true})
   add_defines("JSON_HAS_RANGES=1", {public = true, force = true}) -- https://reviews.llvm.org/D149276
   add_defines("JSON_USE_IMPLICIT_CONVERSIONS=0", {public = true, force = true})
   add_defines("KJ_STD_COMPAT", {public = true, force = true})
   add_defines("CXXOPTS_NO_RTTI", {public = true, force = true})
-  add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE",
+  add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE","GLM_FORCE_INTRINSICS","GLM_FORCE_ALIGNED_GENTYPES","GLM_FORCE_SSE42","GLM_FORCE_AVX2","GLM_FORCE_AVX",
     {public = true, force = true})
+  add_vectorexts("avx", "avx2",{public=true})
+add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2", "sse4.1",{public=true})
 
   if not is_mode("debug") then
     add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
