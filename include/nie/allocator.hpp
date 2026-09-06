@@ -115,10 +115,14 @@ namespace nie {
     auto ctx = std::move(fd->allocator_);
     fd->~allocation_data();
     assert(!!ctx);
+#if !defined(__clang__)
 #pragma GCC diagnostic push                            // save the actual diag context
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized" // disable maybe warnings
     ctx->deallocate(reinterpret_cast<char*>(fd), fd->n + sizeof(allocation_data));
 #pragma GCC diagnostic pop // restore previous diag context
+#else
+    ctx->deallocate(reinterpret_cast<char*>(fd), fd->n + sizeof(allocation_data));
+#endif
   }
 
   struct abstract_anonymous_deleter {

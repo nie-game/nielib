@@ -52,7 +52,10 @@ namespace nie {
     std::span<service_description*> services;
     std::span<base_dependency*> base_dependencies;
   };
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
   static_assert(offsetof(module_ctx, module_version) == 8);
+#pragma GCC diagnostic pop
 
   inline std::vector<base_dependency*>& global_dependencies() {
     static std::vector<base_dependency*> instance;

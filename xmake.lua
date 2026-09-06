@@ -39,7 +39,7 @@ function nielib_data()
   add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE","GLM_FORCE_INTRINSICS","GLM_FORCE_ALIGNED_GENTYPES","GLM_FORCE_SSE42","GLM_FORCE_AVX2","GLM_FORCE_AVX",
     {public = true, force = true})
   add_vectorexts("avx", "avx2",{public=true})
-add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2", "sse4.1",{public=true})
+add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2",{public=true})
 
   if not is_mode("debug") then
     add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
@@ -57,7 +57,7 @@ add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2", "sse4.1",{public=true})
     "-Werror=ignored-attributes", 
     --"-Werror=unused-value",
      "-Werror=uninitialized",
-    "-Werror=tautological-constant-out-of-range-compare", "-Werror=argument-undefined-behaviour",
+    "-Werror=tautological-constant-out-of-range-compare", "-Werror=argument-undefined-behaviour","-Werror=unused-value",
     "-Werror=vexing-parse", "-Werror=reorder-ctor", "-Werror=dangling", {public = true})
 
   if is_os("linux") then
@@ -99,7 +99,7 @@ add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2", "sse4.1",{public=true})
       add_ldflags("-fno-force-dwarf-frame", {public = true})
       add_shflags("-fno-force-dwarf-frame", {public = true})
     end
-    -- add_cxflags("-fno-rtti", {public = true})
+     add_cxflags("-fno-rtti", {public = true})
   elseif is_os("windows") then
     set_runtimes("MT")
     add_cxflags("/GR-", {public = true})

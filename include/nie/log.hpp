@@ -491,6 +491,8 @@ namespace nie {
           {
             write_log_file(
                 std::format("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str()));
+            if (!log_message_disable<msg_data>::init_cookie)
+              std::println("BAD INIT COOKIE");
             if ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal) ||
                 (!log_message_disable<msg_data>::is_disabled))
               std::println("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str());
