@@ -91,8 +91,8 @@ namespace nie {
     tuneable_list().emplace(name, std::make_unique<abstract_tuneable>(abstract_tuneable{name, description, std::move(p)}));
   }
   namespace tuneable_control {
-    std::unordered_set<std::string_view> list() {
-      std::unordered_set<std::string_view> set;
+    std::set<std::string_view> list() {
+      std::set<std::string_view> set;
       for (auto& [name, info] : tuneable_list())
         set.insert(name);
       return set;

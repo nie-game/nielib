@@ -10,20 +10,20 @@
 
 namespace nie {
   template <typename T, typename... Args> struct virtual_thread_local {
-    std::shared_mutex mutex;
+    nie::shared_mutex mutex;
     std::unordered_map<std::thread::id, T> map;
     std::tuple<Args...> args;
     inline virtual_thread_local(Args... args) : args(std::move(args)...) {}
     inline T& operator()() {
       auto id = std::this_thread::get_id();
       {
-        std::shared_lock lock(mutex);
+        nie::shared_lock lock{mutex, NIE_HERE};
         auto it = map.find(id);
         if (it != map.end())
           return it->second;
       }
       {
-        std::unique_lock lock(mutex);
+        nie::unique_lock lock{mutex, NIE_HERE};
         auto it = map.find(id);
         if (it != map.end())
           return it->second;
@@ -33,7 +33,7 @@ namespace nie {
       }
     }
     inline void iterate(const nie::callback_wrapper<void(T&)>& cb) {
-      std::shared_lock lock(mutex);
+      nie::shared_lock lock{mutex, NIE_HERE};
       for (auto& [k, v] : map)
         cb(v);
     }

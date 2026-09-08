@@ -2,15 +2,15 @@
 #include <nie/log_capnp.hpp>
 namespace nie {
   inline bool register_capnp(uint64_t s, const nie::function_ref<void()>& cb) {
-    static std::shared_mutex mtx;
+    static nie::shared_mutex mtx;
     static std::set<uint64_t> set = {0xE682AB4CF923A417ULL};
     {
-      std::shared_lock lock(mtx);
+      nie::shared_lock lock{mtx, NIE_HERE};
       if (set.contains(s))
         return false;
     }
     cb();
-    std::unique_lock lock(mtx);
+    nie::unique_lock lock{mtx, NIE_HERE};
     return set.insert(s).second;
   }
 

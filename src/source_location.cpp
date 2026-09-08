@@ -18,7 +18,7 @@ namespace nie {
   };
   struct myslcache {
     std::unordered_map<const cookie_t*, std::pair<std::string, uint32_t>> cache;
-    std::mutex mtx;
+    nie::mutex mtx;
   };
   myslcache& get_cache() {
     static myslcache c = {};
@@ -26,12 +26,12 @@ namespace nie {
   }
   NIE_EXPORT void register_source_location(const cookie_t* ptr, std::string data, uint32_t line) {
     auto& cache = get_cache();
-    std::unique_lock _{cache.mtx};
+    nie::unique_lock _{cache.mtx, NIE_HERE};
     cache.cache.emplace(ptr, std::pair<std::string, uint32_t>{data, line});
   }
   NIE_EXPORT const char* source_location::file_name() const {
     auto& cache = get_cache();
-    std::unique_lock _{cache.mtx};
+    nie::unique_lock _{cache.mtx, NIE_HERE};
     auto it = cache.cache.find(impl);
     if (it != cache.cache.end())
       return it->second.first.data();
@@ -39,16 +39,16 @@ namespace nie {
   }
   NIE_EXPORT uint32_t source_location::line() const {
     auto& cache = get_cache();
-    std::unique_lock _{cache.mtx};
+    nie::unique_lock _{cache.mtx, NIE_HERE};
     auto it = cache.cache.find(impl);
     if (it != cache.cache.end())
       return it->second.second;
     return 0;
   }
   NIE_EXPORT source_location source_location::current(std::source_location base) {
-    static std::mutex mtx;
+    static nie::mutex mtx;
     static auto cache = new std::unordered_map<std::source_location, cookie_t, sl_hash, sl_eq>;
-    std::unique_lock lock{mtx};
+    nie::unique_lock lock{mtx, NIE_HERE};
     auto [it, inserted] = cache->emplace(base, false);
     auto ptr = &it->second;
     lock.unlock();

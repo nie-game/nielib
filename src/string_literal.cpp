@@ -19,7 +19,7 @@ namespace nie {
   };
 
   struct cache_ptr_t {
-    std::shared_mutex cache_mutex;
+    nie::shared_mutex cache_mutex;
     std::forward_list<dynamic_string_data> dyn_cache_;
     std::unordered_map<std::string_view, string_data const*> cache_{{""sv, nullptr}};
   }; // namespace
@@ -31,13 +31,13 @@ namespace nie {
 
   string::string(std::string_view text) {
     {
-      std::shared_lock lock(cache_ptr().cache_mutex);
+      nie::shared_lock lock{cache_ptr().cache_mutex, NIE_HERE};
       if (cache_ptr().cache_.contains(text)) {
         data_ = cache_ptr().cache_.at(text);
         return;
       }
     }
-    std::unique_lock lock(cache_ptr().cache_mutex);
+    nie::unique_lock lock{cache_ptr().cache_mutex, NIE_HERE};
     if (cache_ptr().cache_.contains(text)) {
       data_ = cache_ptr().cache_.at(text);
       return;
@@ -49,7 +49,7 @@ namespace nie {
   }
 
   NIE_EXPORT string_data const* register_literal(string_data const* d) {
-    std::unique_lock lock(cache_ptr().cache_mutex);
+    nie::unique_lock lock{cache_ptr().cache_mutex, NIE_HERE};
     auto [it, _] = cache_ptr().cache_.emplace(d->text(), d);
     assert(it->second);
     return it->second;

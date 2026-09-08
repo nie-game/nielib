@@ -10,7 +10,7 @@
 namespace nie {
 #ifndef NDEBUG
   namespace {
-    std::mutex mtx;
+    nie::mutex mtx;
     std::map<char*, std::pair<nie::source_location, std::string_view>> cache;
   } // namespace
 #endif
@@ -24,7 +24,7 @@ namespace nie {
       memset(ptr, 0, n);
 #ifndef NDEBUG
       {
-        std::unique_lock _{mtx};
+        nie::unique_lock _{mtx, NIE_HERE};
         cache.emplace(ptr, std::pair<nie::source_location, std::string_view>{location, name});
       }
 #endif
@@ -37,7 +37,7 @@ namespace nie {
       sum -= n;
 #ifndef NDEBUG
       {
-        std::unique_lock _{mtx};
+        nie::unique_lock _{mtx, NIE_HERE};
         assert(cache.erase(p) == 1);
       }
 #endif
@@ -55,14 +55,14 @@ namespace nie {
     std::array<uint64_t, 65536 - 128> base_part;
 
 #ifndef NDEBUG
-    std::mutex mtx;
+    nie::mutex mtx;
     std::map<char*, std::pair<nie::source_location, size_t>> cache;
 #endif
 
     ~chonky_allocator() {
 #ifndef NDEBUG
       if (sum) {
-        std::unique_lock _{mtx};
+        nie::unique_lock _{mtx, NIE_HERE};
         std::println("Count unfreed {} {:#x}", cache.size(), sum);
         for (auto [a, b] : cache)
           std::println("Unfreed chonked allocation {:#x} in {}", size_t(a), b.first);
@@ -86,7 +86,7 @@ namespace nie {
       current = current.subspan(slots);
 #ifndef NDEBUG
       {
-        std::unique_lock _{mtx};
+        nie::unique_lock _{mtx, NIE_HERE};
         assert(!cache.contains(reinterpret_cast<char*>(ptr)));
         cache.emplace(reinterpret_cast<char*>(ptr), std::pair<nie::source_location, size_t>{location, n});
       }
@@ -98,7 +98,7 @@ namespace nie {
       sum -= n;
 #ifndef NDEBUG
       {
-        std::unique_lock _{mtx};
+        nie::unique_lock _{mtx, NIE_HERE};
         assert(cache.contains(p));
         assert(cache.at(p).second == n);
         assert(cache.erase(p) == 1);
@@ -125,7 +125,7 @@ namespace nie {
   NIE_EXPORT void clean_malloc_allocator() {
 #ifndef NDEBUG
     {
-      std::unique_lock _{mtx};
+      nie::unique_lock _{mtx, NIE_HERE};
       nie::logger<"malloc_allocator">{}.warn<"unfreed">("count"_log = cache.size());
       for (auto& [p, location] : cache)
         nie::logger<"malloc_allocator">{}.warn<"unfreed">(

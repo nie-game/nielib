@@ -134,7 +134,7 @@ namespace nie {
   }
 
   NIE_EXPORT void write_log_file(std::string_view m) {
-    static std::mutex mtx;
+    static nie::mutex mtx;
     static std::ofstream file(executable_name() + std::string(".txt"), std::ofstream::out | std::ofstream::trunc);
     std::unique_lock lock(mtx);
     file << m << std::endl;
@@ -148,7 +148,6 @@ namespace nie {
     std::ifstream file("nolog.txt");
     std::string line;
     while (std::getline(file, line)) {
-      std::println("DISABLOING {}: {}", line, disablers().contains(line));
       if (disablers().contains(line)) {
         for (const auto d : disablers().at(line))
           *d = true;
@@ -157,7 +156,6 @@ namespace nie {
   }
 
   NIE_EXPORT void add_log_disabler(std::string_view v, bool* ptr) {
-    std::println("DISABLE {}", v);
     size_t found_pos = 0;
     size_t cur = 0;
     while ((cur = v.find('.', found_pos)) != std::string_view::npos) {
@@ -168,10 +166,10 @@ namespace nie {
     disablers()["*"].emplace_back(ptr);
   }
   void register_nie_string(nie::string s) {
-    static std::shared_mutex mtx;
+    static nie::shared_mutex mtx;
     static std::unordered_set<nie::string> set;
     {
-      std::shared_lock lock(mtx);
+      nie::shared_lock lock{mtx, NIE_HERE};
       if (set.contains(s))
         return;
     }

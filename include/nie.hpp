@@ -9,6 +9,8 @@
 #include <expected>
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 
 namespace nie {
   template <typename T> struct tuneable {
@@ -56,11 +58,36 @@ namespace nie {
     return 42;
   }
 
-//#ifndef NDEBUG
+  using mutex = std::timed_mutex;
+  using shared_mutex = std::shared_timed_mutex;
+  template <typename T>
+  concept nie_mutex = std::is_same_v<T, mutex> || std::is_same_v<T, shared_mutex>;
+  template <nie_mutex T> struct NIE_EXPORT unique_lock {
+    NIE_EXPORT unique_lock(T& mtx, nie::source_location location = nie::source_location::current());
+    NIE_EXPORT ~unique_lock();
+    NIE_EXPORT void unlock();
+
+  private:
+    T& mutex_;
+    nie::source_location location_;
+    bool locked_;
+  };
+  struct NIE_EXPORT shared_lock {
+    NIE_EXPORT shared_lock(nie::shared_mutex& mtx, nie::source_location location = nie::source_location::current());
+    NIE_EXPORT ~shared_lock();
+    NIE_EXPORT void unlock();
+
+  private:
+    nie::shared_mutex& mutex_;
+    nie::source_location location_;
+    bool locked_;
+  };
+
+// #ifndef NDEBUG
 #define NIE_UNREACHABLE nie::fatal("Unreachable reached", NIE_HERE)
-//#else
-//#define NIE_UNREACHABLE __builtin_unreachable()
-//#endif
+  // #else
+  // #define NIE_UNREACHABLE __builtin_unreachable()
+  // #endif
 
 #define EVAR(name, expr)                                                                                                                   \
   auto name##_ec = expr;                                                                                                                   \
