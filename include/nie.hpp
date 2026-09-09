@@ -140,7 +140,7 @@ namespace nie {
     else                                                                                                                                   \
       name = std::move(name##_ec.value());                                                                                                 \
   }
-
+  NIE_EXPORT void set_thread_name(const std::string& name);
 } // namespace nie
 #endif
 #include "nie/log.hpp"

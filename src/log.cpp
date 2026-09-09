@@ -19,6 +19,7 @@
 #endif
 
 namespace nie {
+  extern void respect_the_dead();
   std::string executable_name() {
 #if defined(PLATFORM_POSIX) || defined(__linux__) // check defines for your setup
 
@@ -39,6 +40,17 @@ namespace nie {
 #endif
   }
 
+  thread_local log_cookie current_coroutine;
+  std::atomic<uint32_t> thread_id_cnt = 0;
+  thread_local uint32_t thread_id = thread_id_cnt++;
+
+  NIE_EXPORT void set_coroutine(log_cookie c) {
+    current_coroutine = c;
+  }
+  NIE_EXPORT log_cookie get_current_coroutine() {
+    return current_coroutine;
+  }
+
   struct log_buffer {
     log_buffer* next = nullptr;
     std::atomic<uint64_t> pos = 0;
@@ -55,22 +67,26 @@ namespace nie {
 
   struct log_frame_t {
     volatile uint64_t time;
-    volatile uint64_t size;
+    volatile uint32_t size;
+    volatile uint32_t thread;
     volatile uint64_t type;
+    volatile uint64_t coroutine;
     inline log_frame_t(size_t size, uint64_t type, std::chrono::tai_clock::time_point time)
-        : time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()), size(size), type(type) {}
+        : time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()), size(size), thread(thread_id),
+          type(type), coroutine(current_coroutine.data_) {}
     log_frame_t() = delete;
     log_frame_t(const log_frame_t&) = delete;
     log_frame_t(log_frame_t&&) = delete;
     log_frame_t& operator=(const log_frame_t&) = delete;
     log_frame_t& operator=(log_frame_t&&) = delete;
   };
-  static_assert(sizeof(log_frame_t) == 24);
+  static_assert(sizeof(log_frame_t) == 32);
   struct header_data {
     uint64_t signature = 724313520984115534ULL;
-    uint64_t format_version = 2;
+    uint64_t format_version = 3;
     char frame[sizeof(log_frame_t)];
     uint64_t breakpad_cookie = std::bit_cast<size_t>(&nie::breakpad_cookie::cookie);
+    uint64_t offset_cookie = std::bit_cast<size_t>(&log_message<"FISCH">::cookie);
     header_data() {
       new (&frame[0]) log_frame_t(sizeof(header_data) - offsetof(header_data, frame) - sizeof(log_frame_t), 0, {});
     }
@@ -80,11 +96,14 @@ namespace nie {
     address_frame() : log_frame_t(8, std::bit_cast<size_t>(&log_message<"0:6:7:segment:A:uint64:7:segment::">::cookie), {}) {}
     void* ptr = this;
   };
-  static_assert(sizeof(log_frame_t) == 24);
-  static_assert(sizeof(address_frame) == 32);
+  static_assert(sizeof(log_frame_t) == 32);
+  static_assert(sizeof(address_frame) == 40);
 
   std::atomic<uint64_t> log_data_sum = 16;
   NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time, log_cookie& cookie) {
+#ifndef NDEBUG
+    respect_the_dead();
+#endif
     assert(size % 8 == 0);
     // std::cout << "SIZE " << size << std::endl;
     while (true) {

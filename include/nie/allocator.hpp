@@ -4,6 +4,7 @@
 #include "source_location.hpp"
 #include "sp.hpp"
 #include <memory>
+#include <type_traits>
 
 namespace nie {
   struct allocator_interface : ref_cnt_interface {
@@ -126,10 +127,11 @@ namespace nie {
   }
 
   struct abstract_anonymous_deleter {
-    virtual void operator()(void* ptr) const noexcept = 0;
+    virtual void operator()(void* ptr, size_t) const noexcept = 0;
   };
   template <typename T> struct anonymous_deleter_impl final : abstract_anonymous_deleter {
-    void operator()(void* ptr) const noexcept override {
+    void operator()(void* ptr, size_t s) const noexcept override {
+      assert((sizeof(T) == s) || (s == 0));
       reinterpret_cast<T*>(ptr)->~T();
     }
     inline static anonymous_deleter_impl<T> instance;
@@ -138,10 +140,13 @@ namespace nie {
     abstract_anonymous_deleter* deleter_ = nullptr;
     inline anonymous_deleter() = default;
     inline anonymous_deleter(abstract_anonymous_deleter* deleter) : deleter_(deleter) {}
-    inline void operator()(void* ptr) const {
+    template <typename T> inline void operator()(T* ptr) const {
       if (ptr) {
         assert(deleter_);
-        (*deleter_)(ptr);
+        if constexpr (std::has_virtual_destructor_v<T>)
+          (*deleter_)(ptr, 0);
+        else
+          (*deleter_)(ptr, sizeof(T));
         anonymous_deallocate(ptr);
       }
     }

@@ -1,6 +1,8 @@
+#include <atomic>
 #include <format>
 #include <iostream>
 #include <nie.hpp>
+#include <thread>
 #ifdef NIELIB_FULL_X11
 #define _GNU_SOURCE /* See feature_test_macros(7) */
 #include <atomic>
@@ -11,6 +13,22 @@
 
 namespace nie {
   using namespace std::literals;
+  std::atomic<bool>& is_dead() {
+    static std::atomic<bool> inst = false;
+    return inst;
+  }
+  void killself() {
+    if (is_dead().exchange(true))
+      while (true) {
+        std::this_thread::sleep_for(1000s);
+      }
+  }
+  void respect_the_dead() {
+    if (is_dead().load())
+      while (true) {
+        std::this_thread::sleep_for(1000s);
+      }
+  }
   NIE_EXPORT void (*fatal_function)(
       std::string_view expletive, nie::source_location location) = [](std::string_view, nie::source_location) { abort(); };
   [[noreturn]] NIE_EXPORT void fatal(nie::source_location location) {
@@ -18,6 +36,7 @@ namespace nie {
   }
   [[noreturn]] NIE_EXPORT void fatal(std::string_view expletive, nie::source_location location) {
     nie::logger<"nie">{}.error<"fatal">("expletive"_log = expletive, "location"_log = location);
+    killself();
 #ifdef NIELIB_FULL_X11
     std::cerr << std::format("FATAL ERROR: {} at {}", expletive, location) << std::endl;
     static std::atomic<bool> first = false;
@@ -103,5 +122,17 @@ namespace nie {
 #endif
     fatal_function(expletive, location);
     abort();
+  }
+  NIE_EXPORT void set_thread_name(const std::string& name) {
+#ifdef _WIN32
+#else
+    auto ret = pthread_setname_np(pthread_self(), name.data());
+    if (ret != 0) {
+      if (ret == ERANGE)
+        nie::fatal("ERANGE", NIE_HERE);
+      else
+        nie::fatal(NIE_HERE);
+    }
+#endif
   }
 } // namespace nie

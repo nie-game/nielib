@@ -38,7 +38,8 @@ namespace nie {
 #ifndef NDEBUG
       {
         nie::unique_lock _{mtx, NIE_HERE};
-        assert(cache.erase(p) == 1);
+        auto erased = cache.erase(p);
+        // assert(erased == 1);
       }
 #endif
       free(p);

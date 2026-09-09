@@ -18,12 +18,21 @@ namespace nie {
 #ifndef NDEBUG
   NIE_EXPORT void register_source_location(const cookie_t*, std::string, uint32_t);
 #endif
+  struct source_location {
+    NIE_EXPORT static source_location current(std::source_location base = std::source_location::current());
+    const cookie_t* impl = nullptr;
+    NIE_EXPORT const char* file_name() const;
+    NIE_EXPORT uint32_t line() const;
+  };
   template <nie::string_literal Tfile_name, uint_least32_t Tline> struct static_source_location_container {
 #ifndef NDEBUG
     inline static_source_location_container(const cookie_t* ptr) {
       register_source_location(ptr, std::string{Tfile_name()}, Tline);
     }
 #endif
+    constexpr static inline nie::source_location get(const cookie_t* cookie) noexcept {
+      return nie::source_location{cookie};
+    }
   };
   template <typename T> struct slcache {
     static inline const cookie_t cookie = 0;
@@ -31,23 +40,12 @@ namespace nie {
     static inline T instance = &cookie;
 #endif
   };
-  struct source_location {
-    NIE_EXPORT static source_location current(std::source_location base = std::source_location::current());
-    const cookie_t* impl = nullptr;
-#ifndef NDEBUG
-    const void* other = nullptr;
-#endif
-    NIE_EXPORT const char* file_name() const;
-    NIE_EXPORT uint32_t line() const;
-  };
 } // namespace nie
 
 #ifndef NDEBUG
 #define NIE_HERE                                                                                                                           \
-  nie::source_location {                                                                                                                   \
-    &nie::slcache<nie::static_source_location_container<__FILE__, __LINE__>>::cookie,                                                      \
-        &nie::slcache<nie::static_source_location_container<__FILE__, __LINE__>>::instance                                                 \
-  }
+  nie::slcache<nie::static_source_location_container<__FILE__, __LINE__>>::instance.get(                                                   \
+      &nie::slcache<nie::static_source_location_container<__FILE__, __LINE__>>::cookie)
 #else
 #define NIE_HERE                                                                                                                           \
   nie::source_location {                                                                                                                   \

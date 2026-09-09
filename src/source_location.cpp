@@ -17,7 +17,7 @@ namespace nie {
     }
   };
   struct myslcache {
-    std::unordered_map<const cookie_t*, std::pair<std::string, uint32_t>> cache;
+    std::unordered_map<const cookie_t*, std::pair<std::string, uint32_t>> cache = {{nullptr, {"NULL", 0}}};
     nie::mutex mtx;
   };
   myslcache& get_cache() {
