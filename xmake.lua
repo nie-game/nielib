@@ -198,3 +198,13 @@ do
   end
 end
 target_end()
+add_requires("doctest")
+target("nielib_test")
+do
+  set_kind("binary")
+  add_deps("nielib_test")
+  add_files("test/*.cpp")
+add_packages("doctest")
+set_default(false)
+end
+target_end()

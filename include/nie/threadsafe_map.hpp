@@ -34,6 +34,14 @@ namespace nie {
       }
       return false;
     }
+    std::vector<std::pair<const Key, T>> pairs() const {
+      assert(size_t(this) >= 0x100);
+      std::shared_lock _{mtx_};
+      std::vector<std::pair<const Key, T>> ret;
+      ret.reserve(data_.size());
+      ret.append_range(data_);
+      return ret;
+    }
 
   private:
     mutable std::shared_mutex mtx_;

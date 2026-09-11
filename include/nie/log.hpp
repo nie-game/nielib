@@ -7,6 +7,7 @@
 #include "startup.hpp"
 #include "string_literal.hpp"
 
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <cstring>
@@ -51,6 +52,7 @@ namespace nie {
   NIE_EXPORT void write_log_file(std::string_view);
   NIE_EXPORT void add_log_disabler(std::string_view, bool*);
   NIE_EXPORT void init_log();
+  NIE_EXPORT void register_log(uint64_t, std::string_view);
   NIE_EXPORT std::span<char> crashdump_data();
   NIE_EXPORT void set_crashdump_data(uint64_t);
   NIE_EXPORT void iterate_frames(const nie::function_ref<void(std::span<const char>)>&);
@@ -352,6 +354,9 @@ namespace nie {
   }
   template <string_literal message> struct log_message {
     static inline const bool cookie = true;
+#ifndef NDEBUG
+    static inline std::atomic<bool> registered = false;
+#endif
   };
   template <string_literal message> struct log_message_disable {
     inline static bool is_disabled = false;
@@ -395,6 +400,11 @@ namespace nie {
           "::">;
       using msg = log_message<text>;
       auto type = std::bit_cast<std::size_t>(&msg::cookie);
+#ifndef NDEBUG
+      if (!msg::registered.exchange(true)) {
+        register_log(type, text());
+      }
+#endif
       auto n = [&](auto& logger) {
         auto m = [&]<typename T>(const T& arg) { log_info<T>::write(logger, arg); };
         (m(args), ...);

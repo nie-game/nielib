@@ -50,6 +50,10 @@ namespace nie {
   NIE_EXPORT log_cookie get_current_coroutine() {
     return current_coroutine;
   }
+  NIE_EXPORT
+  void register_log(uint64_t type, std::string_view text) {
+    nie::logger{}.flexible_log<level_e::internal, "message">("type"_log = type, "message"_log = text);
+  }
 
   struct log_buffer {
     log_buffer* next = nullptr;
@@ -81,21 +85,28 @@ namespace nie {
     log_frame_t& operator=(log_frame_t&&) = delete;
   };
   static_assert(sizeof(log_frame_t) == 32);
+  struct address_frame : log_frame_t {
+    static constexpr auto text = "0:6:7:segment:A:uint64:7:segment::"_lit;
+    static inline uint64_t type() {
+      return std::bit_cast<size_t>(&log_message<text>::cookie);
+    }
+    address_frame() : log_frame_t(8, type(), {}) {}
+    void* ptr = this;
+  };
   struct header_data {
     uint64_t signature = 724313520984115534ULL;
     uint64_t format_version = 3;
     char frame[sizeof(log_frame_t)];
     uint64_t breakpad_cookie = std::bit_cast<size_t>(&nie::breakpad_cookie::cookie);
-    uint64_t offset_cookie = std::bit_cast<size_t>(&log_message<"FISCH">::cookie);
+    uint64_t message_cookie = std::bit_cast<size_t>(&log_message<"0:6:7:message:A:uint64:4:type:A:string:7:message::">::cookie);
+    uint64_t address_cookie = std::bit_cast<size_t>(address_frame::type());
+
     header_data() {
       new (&frame[0]) log_frame_t(sizeof(header_data) - offsetof(header_data, frame) - sizeof(log_frame_t), 0, {});
     }
   };
+  static_assert(sizeof(header_data) == (16 + 32 + 24));
 
-  struct address_frame : log_frame_t {
-    address_frame() : log_frame_t(8, std::bit_cast<size_t>(&log_message<"0:6:7:segment:A:uint64:7:segment::">::cookie), {}) {}
-    void* ptr = this;
-  };
   static_assert(sizeof(log_frame_t) == 32);
   static_assert(sizeof(address_frame) == 40);
 
@@ -200,6 +211,7 @@ namespace nie {
     return;
   }
   NIE_EXPORT void init_log() {
+    register_log(address_frame::type(), address_frame::text());
     atexit([] {
       delete crashdump_buffer;
       log_buffer* buffer = first_buffer;

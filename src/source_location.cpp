@@ -25,6 +25,9 @@ namespace nie {
     return c;
   }
   NIE_EXPORT void register_source_location(const cookie_t* ptr, std::string data, uint32_t line) {
+#ifndef NDEBUG
+    nie::logger<>{}.internal<"source_location">("index"_log = size_t(ptr), "file_name"_log = std::string_view(data), "line"_log = line);
+#endif
     auto& cache = get_cache();
     nie::unique_lock _{cache.mtx, NIE_HERE};
     cache.cache.emplace(ptr, std::pair<std::string, uint32_t>{data, line});
