@@ -56,7 +56,7 @@ namespace nie {
   NIE_EXPORT std::span<char> crashdump_data();
   NIE_EXPORT void set_crashdump_data(uint64_t);
   NIE_EXPORT void iterate_frames(const nie::function_ref<void(std::span<const char>)>&);
-  constexpr size_t frame_size = 1024 * 1024 * 16;
+  constexpr size_t frame_size = 1024 * 1024 * 64;
 
   template <typename T, typename Enabler = void> struct log_info {
     static constexpr auto name = "invalid"_lit;
@@ -68,7 +68,7 @@ namespace nie {
       logger.write(str.data(), str.size());
     }
     inline static void format(std::stringstream& ss, const T& v) {
-      ss << "-fucked-";
+      ss << "-fucked " << __PRETTY_FUNCTION__ << "-";
     }
   };
   template <typename T> struct fallback_formatter;
