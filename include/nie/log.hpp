@@ -502,7 +502,6 @@ namespace nie {
           };
           (m(args), ...);
           {
-            auto current_coroutine = get_current_coroutine();
             write_log_file(
                 std::format("[{} {:#18x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str()));
             if (!log_message_disable<msg_data>::init_cookie)

@@ -19,6 +19,7 @@ add_requires("capnproto 1.1.0")
 add_requires("etl")
 
 function nielib_data()
+add_rules("mode.debug", "mode.release")
   add_packages("stack_alloc")
   add_packages("system_error2")
   add_packages("nontype_functional")
@@ -70,9 +71,6 @@ add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2",{public=true})
     add_shflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
     add_ldflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
     add_ldflags("-Wl,-z,stack-size=524288", {public = true, force = true})
-    add_ldflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
-    add_shflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
-    add_cxflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
     if is_mode("debug") then
       ----[[
       add_cxflags("-fstack-protector-all", "-mshstk", {public = true, force = true})
@@ -122,7 +120,7 @@ add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2",{public=true})
     import("stripper", {rootdir = os.projectdir()})
     stripper.after_link(target)
   end)
-  before_link("linux", function(target)
+  --[==[before_link("linux", function(target)
     local paths = table.unique(table.join(target:get_from("linkdirs", "*"), {"/usr/lib/x86_64-linux-gnu/"}))
     target:linker():_tool().nf_link = function(self, lib)
       local has_file = false
@@ -144,7 +142,7 @@ add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2",{public=true})
     end
     target:linker():_tool().nf_syslink = target:linker():_tool().nf_link
     target:linkflags()
-  end, {public = true})
+  end, {public = true})]==]
 end
 target("nielib")
 do

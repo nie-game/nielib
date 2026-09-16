@@ -41,6 +41,7 @@ namespace nie {
     std::map<std::string_view, nie_error_category> error_cache;
     nie::mutex error_cache_mutex;
   };
+
   NIE_EXPORT std::error_category& filter_error_category(std::string_view name, std::span<std::pair<int, std::string_view>> items) {
     static error_cache_data_type error_cache_data;
     nie::unique_lock _{error_cache_data.error_cache_mutex, NIE_HERE};
