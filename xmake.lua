@@ -52,6 +52,7 @@ add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2",{public=true})
     add_shflags("-Wl,--exclude-libs,ALL", {public = true, force = true})
   end
 
+
   add_cxxflags("-Werror=inconsistent-missing-override", {public = true})
   add_cxflags("-fuse-ld=lld", "-Werror=move", "-Werror=unused-result", "-Werror=return-type", "-Werror=switch",
     "-Werror=delete-non-virtual-dtor", "-Werror=return-type", "-Werror=switch",
@@ -71,6 +72,9 @@ add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2",{public=true})
     add_shflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
     add_ldflags("-fPIC", "-fuse-ld=lld", "-fno-strict-aliasing", "-gdwarf-4", "-rdynamic", {public = true, force = true})
     add_ldflags("-Wl,-z,stack-size=524288", {public = true, force = true})
+    add_ldflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
+    add_shflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
+    add_cxflags("-static-libstdc++", "-static-libgcc", {public = true, force = true})
     if is_mode("debug") then
       ----[[
       add_cxflags("-fstack-protector-all", "-mshstk", {public = true, force = true})
