@@ -168,12 +168,11 @@ namespace nie {
   template <typename T, nie::source_location location, typename... Args>
   inline unique_ptr<T> allocate_unique(const nie::allocator<T>& alloc, Args&&... args) {
     auto ptr = anonymous_allocate(alloc.arena(), sizeof(T), location, get_name<T>());
-    return {new (ptr) T(std::forward<Args>(args)...)
+    return {new (ptr) T(std::forward<Args>(args)...),
 #ifndef NDEBUG
-                ,
         &anonymous_deleter_impl<T>::instance
 #else
-            anonymous_deleter{}
+        anonymous_deleter{}
 #endif
     };
   }
