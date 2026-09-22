@@ -172,6 +172,8 @@ namespace nie {
 #ifndef NDEBUG
                 ,
         &anonymous_deleter_impl<T>::instance
+#else
+            anonymous_deleter{}
 #endif
     };
   }
