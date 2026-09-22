@@ -126,27 +126,40 @@ namespace nie {
 #endif
   }
 
+#ifndef NDEBUG
   struct abstract_anonymous_deleter {
     virtual void operator()(void* ptr, size_t) const noexcept = 0;
   };
   template <typename T> struct anonymous_deleter_impl final : abstract_anonymous_deleter {
     void operator()(void* ptr, size_t s) const noexcept override {
       assert((sizeof(T) == s) || (s == 0));
-      reinterpret_cast<T*>(ptr)->~T();
     }
     inline static anonymous_deleter_impl<T> instance;
   };
+#endif
   struct anonymous_deleter {
+#ifndef NDEBUG
     abstract_anonymous_deleter* deleter_ = nullptr;
-    inline anonymous_deleter() = default;
+#endif
+    inline anonymous_deleter() {}
+    inline anonymous_deleter(const anonymous_deleter& o) = default;
+    inline anonymous_deleter(anonymous_deleter&& o) = default;
+    inline anonymous_deleter& operator=(const anonymous_deleter& o) = default;
+    inline anonymous_deleter& operator=(anonymous_deleter&& o) = default;
+#ifndef NDEBUG
     inline anonymous_deleter(abstract_anonymous_deleter* deleter) : deleter_(deleter) {}
+#endif
     template <typename T> inline void operator()(T* ptr) const {
       if (ptr) {
         assert(deleter_);
-        if constexpr (std::has_virtual_destructor_v<T>)
+#ifndef NDEBUG
+        if constexpr (std::has_virtual_destructor_v<T>) {
           (*deleter_)(ptr, 0);
-        else
+        } else {
           (*deleter_)(ptr, sizeof(T));
+        }
+#endif
+        reinterpret_cast<T*>(ptr)->~T();
         anonymous_deallocate(ptr);
       }
     }
@@ -155,7 +168,12 @@ namespace nie {
   template <typename T, nie::source_location location, typename... Args>
   inline unique_ptr<T> allocate_unique(const nie::allocator<T>& alloc, Args&&... args) {
     auto ptr = anonymous_allocate(alloc.arena(), sizeof(T), location, get_name<T>());
-    return {new (ptr) T(std::forward<Args>(args)...), &anonymous_deleter_impl<T>::instance};
+    return {new (ptr) T(std::forward<Args>(args)...)
+#ifndef NDEBUG
+                ,
+        &anonymous_deleter_impl<T>::instance
+#endif
+    };
   }
 } // namespace nie
 
