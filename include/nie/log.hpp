@@ -7,9 +7,11 @@
 #include "startup.hpp"
 #include "string_literal.hpp"
 
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <cstring>
+#include <filesystem>
 #include <format>
 #include <iostream>
 #include <nie.hpp>
@@ -40,17 +42,21 @@ namespace vk {
 }
 namespace nie {
   struct log_cookie {
-    uint64_t data_;
+    uint64_t data_{};
+    auto operator<=>(const log_cookie&) const noexcept = default;
   };
 
   NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time, log_cookie& cookie);
+  NIE_EXPORT void set_coroutine(log_cookie);
+  NIE_EXPORT log_cookie get_current_coroutine();
   NIE_EXPORT void write_log_file(std::string_view);
   NIE_EXPORT void add_log_disabler(std::string_view, bool*);
   NIE_EXPORT void init_log();
+  NIE_EXPORT void register_log(uint64_t, std::string_view);
   NIE_EXPORT std::span<char> crashdump_data();
   NIE_EXPORT void set_crashdump_data(uint64_t);
   NIE_EXPORT void iterate_frames(const nie::function_ref<void(std::span<const char>)>&);
-  constexpr size_t frame_size = 1024 * 1024 * 16;
+  constexpr size_t frame_size = 1024 * 1024 * 64;
 
   template <typename T, typename Enabler = void> struct log_info {
     static constexpr auto name = "invalid"_lit;
@@ -62,7 +68,7 @@ namespace nie {
       logger.write(str.data(), str.size());
     }
     inline static void format(std::stringstream& ss, const T& v) {
-      ss << "-fucked-";
+      ss << "-fucked " << __PRETTY_FUNCTION__ << "-";
     }
   };
   template <typename T> struct fallback_formatter;
@@ -127,6 +133,19 @@ namespace nie {
     }
     inline static void format(std::stringstream& ss, const log_param<a, std::string_view>& v) {
       ss << std::format("'{}'", v.value);
+    }
+  };
+  template <nie::string_literal a> struct log_info<log_param<a, std::filesystem::path>> {
+    static constexpr auto name = "string"_lit;
+    static constexpr size_t size = 65536;
+
+    inline static void write(auto& logger, const log_param<a, std::filesystem::path>& v) {
+      auto d = v.value.string();
+      logger.template write_int<uint32_t>(d.size());
+      logger.write(d.data(), d.size());
+    }
+    inline static void format(std::stringstream& ss, const log_param<a, std::filesystem::path>& v) {
+      ss << std::format("'{}'", v.value.string());
     }
   };
   template <nie::string_literal a> struct log_info<log_param<a, std::span<const uint8_t>>> {
@@ -260,7 +279,7 @@ namespace nie {
       logger.template write_int<uint64_t>(size_t(v.value));
     }
     inline static void format(std::stringstream& ss, const log_param<a, T*>& v) {
-      ss << std::format("{:#x}", size_t(v.value));
+      ss << std::format("{:#18x}", size_t(v.value));
     }
   };
   template <nie::string_literal a, typename T> struct log_info<log_param<a, T>, std::enable_if_t<vk::isVulkanHandleType<T>::value>> {
@@ -271,7 +290,7 @@ namespace nie {
       logger.template write_int<uint64_t>(size_t(typename T::NativeType(v.value)));
     }
     inline static void format(std::stringstream& ss, const log_param<a, T>& v) {
-      ss << std::format("{:#x}", size_t(typename T::NativeType(v.value)));
+      ss << std::format("{:#18x}", size_t(typename T::NativeType(v.value)));
     }
   };
   template <nie::string_literal a> struct log_info<log_param<a, nie::source_location>> {
@@ -294,7 +313,7 @@ namespace nie {
       logger.write(&p, sizeof(p));
     }
     inline static void format(std::stringstream& ss, const log_param<a, log_cookie>& v) {
-      ss << std::format("{:#x}", size_t(v.value.data_));
+      ss << std::format("{:#18x}", size_t(v.value.data_));
     }
   };
   template <typename T> struct log_name;
@@ -335,6 +354,9 @@ namespace nie {
   }
   template <string_literal message> struct log_message {
     static inline const bool cookie = true;
+#ifndef NDEBUG
+    static inline std::atomic<bool> registered = false;
+#endif
   };
   template <string_literal message> struct log_message_disable {
     inline static bool is_disabled = false;
@@ -362,7 +384,7 @@ namespace nie {
     }
     template <string_literal message, typename... T> [[noreturn]] inline void fatal(const T&... args) {
       flexible_log<level_e::fatal, message, T...>(args...);
-      nie::fatal("fatal failed");
+      nie::fatal("fatal failed", NIE_HERE);
     }
 
     template <level_e level, string_literal message, typename... Args> inline log_cookie flexible_log(const Args&... args) {
@@ -378,6 +400,11 @@ namespace nie {
           "::">;
       using msg = log_message<text>;
       auto type = std::bit_cast<std::size_t>(&msg::cookie);
+#ifndef NDEBUG
+      if (!msg::registered.exchange(true)) {
+        register_log(type, text());
+      }
+#endif
       auto n = [&](auto& logger) {
         auto m = [&]<typename T>(const T& arg) { log_info<T>::write(logger, arg); };
         (m(args), ...);
@@ -452,10 +479,6 @@ namespace nie {
 #ifdef NDEBUG
       // Release
       if constexpr ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal))
-#else
-      // Debug
-      if ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal) ||
-          (!log_message_disable<msg_data>::is_disabled))
 #endif
         if constexpr (level != level_e::internal) {
           if (frame) {
@@ -480,8 +503,12 @@ namespace nie {
           (m(args), ...);
           {
             write_log_file(
-                std::format("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str()));
-            std::println("[{} {:#x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str());
+                std::format("[{} {:#18x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str()));
+            if (!log_message_disable<msg_data>::init_cookie)
+              std::println("BAD INIT COOKIE");
+            if ((level == level_e::warn) || (level == level_e::error) || (level == level_e::fatal) ||
+                (!log_message_disable<msg_data>::is_disabled))
+              std::println("[{} {:#18x}] {} {}: {}", now, size_t(cookie.data_), levstr(level), dotted<area..., message>(), ss.str());
           }
         }
       return cookie;

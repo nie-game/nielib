@@ -16,8 +16,10 @@ tribute("expected", "CC0", "http://tl.tartanllama.xyz/")
 
 add_requires("magic_enum")
 add_requires("capnproto 1.1.0")
+add_requires("etl")
 
 function nielib_data()
+add_rules("mode.debug", "mode.release")
   add_packages("stack_alloc")
   add_packages("system_error2")
   add_packages("nontype_functional")
@@ -25,6 +27,7 @@ function nielib_data()
   add_packages("short_alloc")
   add_packages("skia-ref_ptr")
   add_packages("expected")
+  add_packages("etl", {public = true})
   add_packages("magic_enum", {public = true})
   add_files("src/*.cpp")
   add_includedirs("include/", {public = true})
@@ -32,13 +35,14 @@ function nielib_data()
   add_defines("NIELIB_FULL", {public = true})
   add_packages("capnproto")
 
-  add_defines("GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE", {public = true, force = true})
   add_defines("JSON_HAS_RANGES=1", {public = true, force = true}) -- https://reviews.llvm.org/D149276
   add_defines("JSON_USE_IMPLICIT_CONVERSIONS=0", {public = true, force = true})
   add_defines("KJ_STD_COMPAT", {public = true, force = true})
   add_defines("CXXOPTS_NO_RTTI", {public = true, force = true})
-  add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE",
+  add_defines("GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_DEPTH_ZERO_TO_ONE","GLM_FORCE_INTRINSICS","GLM_FORCE_ALIGNED_GENTYPES","GLM_FORCE_SSE42","GLM_FORCE_AVX2","GLM_FORCE_AVX",
     {public = true, force = true})
+  add_vectorexts("avx", "avx2",{public=true})
+add_vectorexts("sse", "sse2", "sse3", "ssse3", "sse4.2",{public=true})
 
   if not is_mode("debug") then
     add_cxflags("-fdata-sections", "-ffunction-sections", {public = true, force = true})
@@ -48,14 +52,17 @@ function nielib_data()
     add_shflags("-Wl,--exclude-libs,ALL", {public = true, force = true})
   end
 
-  add_cxxflags("-Werror=inconsistent-missing-override", {public = true, force = true})
+
+  add_cxxflags("-Werror=inconsistent-missing-override", {public = true})
   add_cxflags("-fuse-ld=lld", "-Werror=move", "-Werror=unused-result", "-Werror=return-type", "-Werror=switch",
     "-Werror=delete-non-virtual-dtor", "-Werror=return-type", "-Werror=switch",
     "-Werror=call-to-pure-virtual-from-ctor-dtor", "-Werror=defaulted-function-deleted",
     "-Werror=delete-non-virtual-dtor", "-Werror=abstract-final-class", "-ftemplate-backtrace-limit=0",
-    "-Werror=ignored-attributes", "-Werror=unused-value", "-Werror=uninitialized",
-    "-Werror=tautological-constant-out-of-range-compare", "-Werror=argument-undefined-behaviour",
-    "-Werror=vexing-parse", "-Werror=reorder-ctor", "-Werror=dangling", {public = true, force = true})
+    "-Werror=ignored-attributes", 
+    --"-Werror=unused-value",
+     "-Werror=uninitialized",
+    "-Werror=tautological-constant-out-of-range-compare", "-Werror=argument-undefined-behaviour","-Werror=unused-value",
+    "-Werror=vexing-parse", "-Werror=reorder-ctor", "-Werror=dangling", {public = true})
 
   if is_os("linux") then
     add_ldflags("-fuse-ld=lld", {public = true, force = true})
@@ -96,7 +103,7 @@ function nielib_data()
       add_ldflags("-fno-force-dwarf-frame", {public = true})
       add_shflags("-fno-force-dwarf-frame", {public = true})
     end
-    -- add_cxflags("-fno-rtti", {public = true})
+     add_cxflags("-fno-rtti", {public = true})
   elseif is_os("windows") then
     set_runtimes("MT")
     add_cxflags("/GR-", {public = true})
@@ -117,7 +124,7 @@ function nielib_data()
     import("stripper", {rootdir = os.projectdir()})
     stripper.after_link(target)
   end)
-  before_link("linux", function(target)
+  --[==[before_link("linux", function(target)
     local paths = table.unique(table.join(target:get_from("linkdirs", "*"), {"/usr/lib/x86_64-linux-gnu/"}))
     target:linker():_tool().nf_link = function(self, lib)
       local has_file = false
@@ -139,7 +146,7 @@ function nielib_data()
     end
     target:linker():_tool().nf_syslink = target:linker():_tool().nf_link
     target:linkflags()
-  end, {public = true})
+  end, {public = true})]==]
 end
 target("nielib")
 do
@@ -175,6 +182,7 @@ do
     add_ldflags("-fsanitize=safe-stack", {public = true, force = true})
     add_shflags("-fsanitize=safe-stack", {public = true, force = true})
   end
+  add_defines("NIELIB_CAPNP",{public = true})
   if is_os("windows") then
     add_defines("NIE_EXPORT=[[gnu::dllimport]]", {interface = true})
     add_defines("NIE_EXPORT=[[gnu::dllexport]]", {public = false})
@@ -192,5 +200,15 @@ do
   else
     add_defines("NIE_EXPORT=[[gnu::visibility(\"default\")]]", {public = true})
   end
+end
+target_end()
+add_requires("doctest")
+target("nielib_test")
+do
+  set_kind("binary")
+  add_deps("nielib_static")
+  add_files("test/*.cpp")
+add_packages("doctest")
+set_default(false)
 end
 target_end()

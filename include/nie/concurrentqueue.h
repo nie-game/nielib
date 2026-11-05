@@ -633,14 +633,14 @@ namespace moodycamel {
     public:
       static void subscribe(ThreadExitListener* listener) {
         auto& tlsInst = instance();
-        std::lock_guard<std::mutex> guard(mutex());
+        std::lock_guard<nie::mutex> guard(mutex());
         listener->next = tlsInst.tail;
         listener->chain = &tlsInst;
         tlsInst.tail = listener;
       }
 
       static void unsubscribe(ThreadExitListener* listener) {
-        std::lock_guard<std::mutex> guard(mutex());
+        std::lock_guard<nie::mutex> guard(mutex());
         if (!listener->chain) {
           return; // race with ~ThreadExitNotifier
         }
@@ -665,7 +665,7 @@ namespace moodycamel {
         // This thread is about to exit, let everyone know!
         assert(this == &instance() && "If this assert fails, you likely have a buggy compiler! Change the preprocessor conditions such "
                                       "that MOODYCAMEL_CPP11_THREAD_LOCAL_SUPPORTED is no longer defined.");
-        std::lock_guard<std::mutex> guard(mutex());
+        std::lock_guard<nie::mutex> guard(mutex());
         for (auto ptr = tail; ptr != nullptr; ptr = ptr->next) {
           ptr->chain = nullptr;
           ptr->callback(ptr->userData);
@@ -678,9 +678,9 @@ namespace moodycamel {
         return notifier;
       }
 
-      static inline std::mutex& mutex() {
+      static inline nie::mutex& mutex() {
         // Must be static because the ThreadExitNotifier could be destroyed while unsubscribe is called
-        static std::mutex mutex;
+        static nie::mutex mutex;
         return mutex;
       }
 

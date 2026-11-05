@@ -52,7 +52,10 @@ namespace nie {
     std::span<service_description*> services;
     std::span<base_dependency*> base_dependencies;
   };
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
   static_assert(offsetof(module_ctx, module_version) == 8);
+#pragma GCC diagnostic pop
 
   inline std::vector<base_dependency*>& global_dependencies() {
     static std::vector<base_dependency*> instance;
@@ -61,6 +64,7 @@ namespace nie {
   template <typename T> struct dependency : base_dependency {
     inline dependency() {
       info = T::info;
+      assert(info.name.size());
       global_dependencies().push_back(this);
     }
     inline T& operator*() {
@@ -78,4 +82,4 @@ namespace nie {
 
 #define DECLARE_MODULE(name) extern "C" [[gnu::visibility("default"), gnu::dllexport]] void nieopen_##name(nie::module_ctx* mctx) noexcept
 
-#endif // NIE_MODULE_HPP
+#endif

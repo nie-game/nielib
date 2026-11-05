@@ -19,6 +19,7 @@
 #endif
 
 namespace nie {
+  extern void respect_the_dead();
   std::string executable_name() {
 #if defined(PLATFORM_POSIX) || defined(__linux__) // check defines for your setup
 
@@ -39,6 +40,21 @@ namespace nie {
 #endif
   }
 
+  thread_local log_cookie current_coroutine;
+  std::atomic<uint32_t> thread_id_cnt = 0;
+  thread_local uint32_t thread_id = thread_id_cnt++;
+
+  NIE_EXPORT void set_coroutine(log_cookie c) {
+    current_coroutine = c;
+  }
+  NIE_EXPORT log_cookie get_current_coroutine() {
+    return current_coroutine;
+  }
+  NIE_EXPORT
+  void register_log(uint64_t type, std::string_view text) {
+    nie::logger{}.flexible_log<level_e::internal, "message">("type"_log = type, "message"_log = text);
+  }
+
   struct log_buffer {
     log_buffer* next = nullptr;
     std::atomic<uint64_t> pos = 0;
@@ -55,36 +71,50 @@ namespace nie {
 
   struct log_frame_t {
     volatile uint64_t time;
-    volatile uint64_t size;
+    volatile uint32_t size;
+    volatile uint32_t thread;
     volatile uint64_t type;
+    volatile uint64_t coroutine;
     inline log_frame_t(size_t size, uint64_t type, std::chrono::tai_clock::time_point time)
-        : time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()), size(size), type(type) {}
+        : time(std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()).count()), size(size), thread(thread_id),
+          type(type), coroutine(current_coroutine.data_) {}
     log_frame_t() = delete;
     log_frame_t(const log_frame_t&) = delete;
     log_frame_t(log_frame_t&&) = delete;
     log_frame_t& operator=(const log_frame_t&) = delete;
     log_frame_t& operator=(log_frame_t&&) = delete;
   };
-  static_assert(sizeof(log_frame_t) == 24);
+  static_assert(sizeof(log_frame_t) == 32);
+  struct address_frame : log_frame_t {
+    static constexpr auto text = "0:6:7:segment:A:uint64:7:segment::"_lit;
+    static inline uint64_t type() {
+      return std::bit_cast<size_t>(&log_message<text>::cookie);
+    }
+    address_frame() : log_frame_t(8, type(), {}) {}
+    void* ptr = this;
+  };
   struct header_data {
     uint64_t signature = 724313520984115534ULL;
-    uint64_t format_version = 2;
+    uint64_t format_version = 3;
     char frame[sizeof(log_frame_t)];
     uint64_t breakpad_cookie = std::bit_cast<size_t>(&nie::breakpad_cookie::cookie);
+    uint64_t message_cookie = std::bit_cast<size_t>(&log_message<"0:6:7:message:A:uint64:4:type:A:string:7:message::">::cookie);
+    uint64_t address_cookie = std::bit_cast<size_t>(address_frame::type());
+
     header_data() {
       new (&frame[0]) log_frame_t(sizeof(header_data) - offsetof(header_data, frame) - sizeof(log_frame_t), 0, {});
     }
   };
+  static_assert(sizeof(header_data) == (16 + 32 + 24));
 
-  struct address_frame : log_frame_t {
-    address_frame() : log_frame_t(8, std::bit_cast<size_t>(&log_message<"0:6:7:segment:A:uint64:7:segment::">::cookie), {}) {}
-    void* ptr = this;
-  };
-  static_assert(sizeof(log_frame_t) == 24);
-  static_assert(sizeof(address_frame) == 32);
+  static_assert(sizeof(log_frame_t) == 32);
+  static_assert(sizeof(address_frame) == 40);
 
   std::atomic<uint64_t> log_data_sum = 16;
   NIE_EXPORT char* log_frame(uint32_t size, uint64_t type, std::chrono::tai_clock::time_point time, log_cookie& cookie) {
+#ifndef NDEBUG
+    respect_the_dead();
+#endif
     assert(size % 8 == 0);
     // std::cout << "SIZE " << size << std::endl;
     while (true) {
@@ -134,7 +164,7 @@ namespace nie {
   }
 
   NIE_EXPORT void write_log_file(std::string_view m) {
-    static std::mutex mtx;
+    static nie::mutex mtx;
     static std::ofstream file(executable_name() + std::string(".txt"), std::ofstream::out | std::ofstream::trunc);
     std::unique_lock lock(mtx);
     file << m << std::endl;
@@ -165,26 +195,11 @@ namespace nie {
     disablers()[std::string(v)].emplace_back(ptr);
     disablers()["*"].emplace_back(ptr);
   }
-  struct l_hash {
-    std::hash<const char*> function_hash;
-    std::hash<const char*> file_hash;
-    std::hash<std::uint_least32_t> line_hash;
-    std::hash<std::uint_least32_t> column_hash;
-    inline size_t operator()(nie::source_location l) const {
-      return function_hash(l.function_name()) ^ file_hash(l.file_name()) ^ line_hash(l.line()) ^ column_hash(l.column());
-    }
-  };
-  struct l_equal {
-    inline bool operator()(nie::source_location a, nie::source_location b) const {
-      return (a.function_name() == b.function_name()) && (a.file_name() == b.file_name()) && (a.line() == b.line()) &&
-             (a.column() == b.column());
-    }
-  };
   void register_nie_string(nie::string s) {
-    static std::shared_mutex mtx;
+    static nie::shared_mutex mtx;
     static std::unordered_set<nie::string> set;
     {
-      std::shared_lock lock(mtx);
+      nie::shared_lock lock{mtx, NIE_HERE};
       if (set.contains(s))
         return;
     }
@@ -196,6 +211,7 @@ namespace nie {
     return;
   }
   NIE_EXPORT void init_log() {
+    register_log(address_frame::type(), address_frame::text());
     atexit([] {
       delete crashdump_buffer;
       log_buffer* buffer = first_buffer;
@@ -205,27 +221,5 @@ namespace nie {
         delete cur;
       }
     });
-#if 0
-    void* ptr = nullptr;
-    bool debug_log = false;
-#ifndef _WIN32
-    if (debug_log) {
-      assert(!nie::log::nie_log_buffer_output);
-      int fd = open((executable_name() + std::string(".nielog")).data(), O_RDWR | O_CLOEXEC | O_CREAT | O_TRUNC, 0666);
-      if (fd == -1) {
-        perror("Log File Open");
-        abort();
-      }
-      if (ftruncate(fd, arena_size)) {
-        perror("Log File Truncate");
-        abort();
-      }
-      ptr = mmap(nullptr, arena_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    } else
-#endif
-    {
-      ptr = malloc(arena_size);
-    }
-#endif
   }
 } // namespace nie

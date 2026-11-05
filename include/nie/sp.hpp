@@ -218,7 +218,7 @@ namespace nie {
     void destruct() noexcept override {
       using traits = std::allocator_traits<A>::template rebind_traits<ref_cnt_impl_allocator<T, A>>;
       typename traits::allocator_type a(alloc);
-      ref_cnt_impl_allocator::~ref_cnt_impl_allocator();
+      this->~ref_cnt_impl_allocator();
       traits::deallocate(a, this, 1);
     } // namespace nie
   private:
@@ -257,13 +257,13 @@ namespace nie {
 
   template <typename T> struct atomic_sp {
     inline nie::sp<T> load() {
-      std::shared_lock _{mtx_};
+      nie::shared_lock _{mtx_, NIE_HERE};
       return data_;
     }
     inline nie::sp<T> exchange(nie::sp<T> p) {
       nie::sp<T> old_value;
       {
-        std::unique_lock _{mtx_};
+        nie::unique_lock _{mtx_, NIE_HERE};
         old_value = std::move(data_);
         data_ = std::move(p);
       }
@@ -274,7 +274,7 @@ namespace nie {
     }
 
   private:
-    std::shared_mutex mtx_;
+    nie::shared_mutex mtx_;
     nie::sp<T> data_;
   };
 } // namespace nie
