@@ -18,11 +18,15 @@
 #include <string>
 #include <string_view>
 
+namespace lunetti {
+  struct fancy_type_data;
+}
 namespace nie {
   struct fancy_interface {
     virtual ~fancy_interface() = default;
     [[gnu::const]] virtual std::string_view name() const = 0;
     virtual std::span<fancy_interface* const> variations() const = 0;
+    lunetti::fancy_type_data* lunetti = nullptr;
   };
 
   struct is_fancy;
