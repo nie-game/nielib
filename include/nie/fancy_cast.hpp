@@ -47,6 +47,9 @@ namespace nie {
 
     virtual ~is_fancy() = default;
     [[gnu::const]] virtual fancy_interface* fancy_self() const = 0;
+    [[gnu::const]] static fancy_interface* fancy_name() {
+      NIE_UNREACHABLE;
+    }
 
     bool operator==(const is_fancy& o) const {
       return fancy_self() == o.fancy_self();
