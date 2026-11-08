@@ -20,6 +20,7 @@ namespace nie {
 #endif
   struct source_location {
     NIE_EXPORT static source_location current(std::source_location base = std::source_location::current());
+    NIE_EXPORT static source_location lua(std::string_view, uint32_t);
     const cookie_t* impl = nullptr;
     NIE_EXPORT const char* file_name() const;
     NIE_EXPORT uint32_t line() const;

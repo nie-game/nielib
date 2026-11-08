@@ -62,4 +62,18 @@ namespace nie {
     }
     return source_location{ptr};
   }
+  NIE_EXPORT source_location source_location::lua(std::string_view f, uint32_t l) {
+    // static nie::mutex mtx;
+    // static auto cache = new std::unordered_map<std::tuple<std::string, uint32_t>, cookie_t>;
+    // nie::unique_lock lock{mtx, NIE_HERE};
+    // auto [it, inserted] = cache->emplace(base, false);
+    // auto ptr = &it->second;
+    // lock.unlock();
+    auto ptr = new cookie_t;
+    // if (inserted) {
+    register_source_location(ptr, std::string{f}, l);
+    nie::logger<>{}.internal<"source_location">("index"_log = size_t(ptr), "file_name"_log = std::string_view(f), "line"_log = l);
+    //}
+    return source_location{ptr};
+  }
 } // namespace nie
